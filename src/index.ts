@@ -1,8 +1,15 @@
-import { Options, App } from "@4site/engrid-scripts"; // Uses ENGrid via NPM
+import {
+  Options,
+  App,
+  EnForm,
+  DonationAmount,
+  DonationFrequency,
+} from "@4site/engrid-scripts"; // Uses ENGrid via NPM
 // import { Options, App } from "../../engrid/packages/scripts"; // Uses ENGrid via Visual Studio Workspace
 
 import "./sass/main.scss";
 import { customScript } from "./scripts/main";
+import DonationLightboxForm from "./scripts/donation-lightbox-form";
 
 const options: Options = {
   applePay: false,
@@ -16,7 +23,11 @@ const options: Options = {
   SrcDefer: true,
   ProgressBar: true,
   Debug: App.getUrlParameter("debug") == "true" ? true : false,
-  onLoad: () => customScript(App),
-  onResize: () => console.log("Starter Theme Window Resized"),
+  onLoad: () => {
+    (<any>window).DonationLightboxForm = DonationLightboxForm;
+    new DonationLightboxForm(DonationAmount, DonationFrequency, App);
+    customScript(App, EnForm);
+  },
+  onResize: () => {},
 };
 new App(options);

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="utf-8">
-	<title>TBD-ORG-NAME - Receipt #{receipt_data~id}</title>
+	<title>Conservation Law Foundation - Receipt #{receipt_data~id}</title>
 </head>
+
 <body data-gramm="false">
-	<div class="receipt-box" style="background: #fff; max-width: 800px; margin: 40px auto 0 auto; padding: 30px; font-size: 16px; line-height: 24px; font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif; color: #555;">
+	<div class="receipt-box"
+		style="background: #fff; max-width: 800px; margin: 40px auto 0 auto; padding: 30px; font-size: 16px; line-height: 24px; font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif; color: #555;">
 		<table cellpadding="0" cellspacing="0" style="width: 100%; line-height: inherit; text-align: left;">
 			<tbody>
 				<tr class="top">
@@ -13,8 +16,11 @@
 						<table style="width: 100%; line-height: inherit; text-align: left;">
 							<tbody>
 								<tr>
-									<td class="title" style="font-size: 45px; line-height: 45px; color: #333;"><img alt="" class="emailImage" data-ratio-lock="true" data-unit="px" src="https://TBD.ssl.cf5.rackcdn.com/12345/logo.png" style="height: 55px; width: 200px;"></td>
-									<td style="padding: 5px; vertical-align: middle; text-align: right;"><b>Receipt #: {receipt_data~id}</b></td>
+									<td class="title" style="font-size: 45px; line-height: 45px; color: #333;"><img alt=""
+											class="emailImage" data-ratio-lock="true" data-unit="px"
+											src="https://TBD.ssl.cf5.rackcdn.com/12345/logo.png" style="height: 55px; width: 200px;"></td>
+									<td style="padding: 5px; vertical-align: middle; text-align: right;"><b>Receipt #:
+											{receipt_data~id}</b></td>
 								</tr>
 							</tbody>
 						</table>
@@ -25,12 +31,13 @@
 						<table style="width: 100%; line-height: inherit; text-align: left;">
 							<tbody>
 								<tr>
-									<td style="padding: 5px; vertical-align: top; padding-bottom: 40px;">TBD-ORG-NAME<br>
-									TBD-ADDRESS-LINE-1<br>
-									TBD-CITY-STATE-ZIP</td>
-									<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 40px;">Transaction Date: {receipt_data~createdOn~[yyyy-MM-dd]}<br>
-									{user_data~First Name} {user_data~Last Name}<br>
-									{user_data~Email}</td>
+									<td style="padding: 5px; vertical-align: top; padding-bottom: 40px;">Conservation Law Foundation<br>
+										62 Summer St<br>
+										Boston, MA 02110</td>
+									<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 40px;">Transaction
+										Date: {receipt_data~createdOn~[yyyy-MM-dd]}<br>
+										{user_data~First Name} {user_data~Last Name}<br>
+										{user_data~Email}</td>
 								</tr>
 							</tbody>
 						</table>
@@ -42,51 +49,73 @@
 					</td>
 				</tr>
 				<tr class="heading">
-					<td style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Payment Method</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Gateway</td>
+					<td
+						style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+						Payment Method</td>
+					<td
+						style="padding: 5px; vertical-align: top; text-align: right; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+						Gateway</td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">{receipt_data~paymentType}</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~gateway}</td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~gateway}
+					</td>
 				</tr>
 				<tr class="heading">
-					<td colspan="2" style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Donation Info</td>
+					<td colspan="2"
+						style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+						Donation Info</td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">Transaction ID</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px; font-size: 12px"><span style="font-size:16px;">{receipt_data~txId}</span></td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px; font-size: 12px"><span
+							style="font-size:16px;">{receipt_data~txId}</span></td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">Order ID</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~orderId}</td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~orderId}
+					</td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">Amount</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~amount}</td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~amount}
+					</td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">Value of Advantage</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{splitreceipt~advantage_amount}</td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">
+						{splitreceipt~advantage_amount}</td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">Eligible Amount of Gift</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{splitreceipt~eligible_amount~-1~-1~-1}</td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">
+						{splitreceipt~eligible_amount~-1~-1~-1}</td>
 				</tr>
 				<tr class="details">
 					<td style="padding: 5px; vertical-align: top; padding-bottom: 20px;">Credit Card</td>
-					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">{receipt_data~paymentType}<br>
-					Expiry {receipt_data~expiry}<br>
-					Last 4 Number {receipt_data~ccLastFour}</td>
+					<td style="padding: 5px; vertical-align: top; text-align: right; padding-bottom: 20px;">
+						{receipt_data~paymentType}<br>
+						Expiry {receipt_data~expiry}<br>
+						Last 4 Number {receipt_data~ccLastFour}</td>
 				</tr>
 				<tr class="information">
 					<td colspan="2">
-						<table cellpadding="0" cellspacing="0" class="enProductTable__table" style="width: 100%; line-height: inherit; text-align: left;">
+						<table cellpadding="0" cellspacing="0" class="enProductTable__table"
+							style="width: 100%; line-height: inherit; text-align: left;">
 							<thead>
 								<tr>
-									<th style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Description</th>
-									<th style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Unit Price</th>
-									<th style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Quantity</th>
-									<th style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">Amount</th>
+									<th
+										style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+										Description</th>
+									<th
+										style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+										Unit Price</th>
+									<th
+										style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+										Quantity</th>
+									<th
+										style="padding: 5px; vertical-align: top; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold;">
+										Amount</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -103,11 +132,17 @@
 				<tr class="information">
 					<td colspan="2">
 						<h2 style="font-size: 20px">Tax and Reporting Information</h2><!-- LEGALIZE -->
-						<p style="color: #333; font-size: 14px; margin: 0 0 1em; line-height: 1.4em; font-style:italic;">This serves as a split receipt for your donation paid to TBD-ORG-NAME. TBD-ORG-NAME is a 501(c)(3) organization and this letter serves as your tax receipt for this contribution. The value specified under "Eligible Amount of Gift" of this receipt is tax deductible. For your records, TBD-ORG-NAME&rsquo;s IRS tax-identification number is TBD-IRS-TAX-ID.&nbsp;&nbsp;<a href="https://www.example.org/privacy" style="color:#337ab7;" target="_blank">Privacy Policy</a></p>
+						<p style="color: #333; font-size: 14px; margin: 0 0 1em; line-height: 1.4em; font-style:italic;">This serves
+							as a split receipt for your donation paid to Conservation Law Foundation. Conservation Law Foundation is a
+							501(c)(3) organization and this letter serves as your tax receipt for this contribution. The value
+							specified under "Eligible Amount of Gift" of this receipt is tax deductible. For your records,
+							Conservation Law Foundation&rsquo;s IRS tax-identification number is 04-6149986.&nbsp;&nbsp;<a
+								href="https://www.example.org/privacy" style="color:#337ab7;" target="_blank">Privacy Policy</a></p>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 </body>
+
 </html>

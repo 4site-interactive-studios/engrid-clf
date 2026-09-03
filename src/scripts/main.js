@@ -1,4 +1,4 @@
-export const customScript = function (App) {
+export const customScript = function (App, EnForm) {
   console.log("ENGrid client scripts are executing");
   // Add your client scripts here
 

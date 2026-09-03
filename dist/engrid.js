@@ -17,10 +17,10 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Thursday, April 2, 2026 @ 09:42:02 ET
+ *  Date: Thursday, September 3, 2026 @ 14:13:58 ET
  *  By: nick
- *  ENGrid styles: v0.24.0
- *  ENGrid scripts: v0.24.5
+ *  ENGrid styles: v0.28.3
+ *  ENGrid scripts: v0.28.3
  *
  *  Created by 4Site Studios
  *  Come work with us or join our team, we would love to hear from you
@@ -2595,6 +2595,444 @@ module.exports = self;
 	} else // removed by dead control flow
 {}
 }.call(this));
+
+
+/***/ },
+
+/***/ 1196
+(module) {
+
+/* smoothscroll v0.4.4 - 2019 - Dustan Kasten, Jeremias Menichelli - MIT License */
+(function () {
+  'use strict';
+
+  // polyfill
+  function polyfill() {
+    // aliases
+    var w = window;
+    var d = document;
+
+    // return if scroll behavior is supported and polyfill is not forced
+    if (
+      'scrollBehavior' in d.documentElement.style &&
+      w.__forceSmoothScrollPolyfill__ !== true
+    ) {
+      return;
+    }
+
+    // globals
+    var Element = w.HTMLElement || w.Element;
+    var SCROLL_TIME = 468;
+
+    // object gathering original scroll methods
+    var original = {
+      scroll: w.scroll || w.scrollTo,
+      scrollBy: w.scrollBy,
+      elementScroll: Element.prototype.scroll || scrollElement,
+      scrollIntoView: Element.prototype.scrollIntoView
+    };
+
+    // define timing method
+    var now =
+      w.performance && w.performance.now
+        ? w.performance.now.bind(w.performance)
+        : Date.now;
+
+    /**
+     * indicates if a the current browser is made by Microsoft
+     * @method isMicrosoftBrowser
+     * @param {String} userAgent
+     * @returns {Boolean}
+     */
+    function isMicrosoftBrowser(userAgent) {
+      var userAgentPatterns = ['MSIE ', 'Trident/', 'Edge/'];
+
+      return new RegExp(userAgentPatterns.join('|')).test(userAgent);
+    }
+
+    /*
+     * IE has rounding bug rounding down clientHeight and clientWidth and
+     * rounding up scrollHeight and scrollWidth causing false positives
+     * on hasScrollableSpace
+     */
+    var ROUNDING_TOLERANCE = isMicrosoftBrowser(w.navigator.userAgent) ? 1 : 0;
+
+    /**
+     * changes scroll position inside an element
+     * @method scrollElement
+     * @param {Number} x
+     * @param {Number} y
+     * @returns {undefined}
+     */
+    function scrollElement(x, y) {
+      this.scrollLeft = x;
+      this.scrollTop = y;
+    }
+
+    /**
+     * returns result of applying ease math function to a number
+     * @method ease
+     * @param {Number} k
+     * @returns {Number}
+     */
+    function ease(k) {
+      return 0.5 * (1 - Math.cos(Math.PI * k));
+    }
+
+    /**
+     * indicates if a smooth behavior should be applied
+     * @method shouldBailOut
+     * @param {Number|Object} firstArg
+     * @returns {Boolean}
+     */
+    function shouldBailOut(firstArg) {
+      if (
+        firstArg === null ||
+        typeof firstArg !== 'object' ||
+        firstArg.behavior === undefined ||
+        firstArg.behavior === 'auto' ||
+        firstArg.behavior === 'instant'
+      ) {
+        // first argument is not an object/null
+        // or behavior is auto, instant or undefined
+        return true;
+      }
+
+      if (typeof firstArg === 'object' && firstArg.behavior === 'smooth') {
+        // first argument is an object and behavior is smooth
+        return false;
+      }
+
+      // throw error when behavior is not supported
+      throw new TypeError(
+        'behavior member of ScrollOptions ' +
+          firstArg.behavior +
+          ' is not a valid value for enumeration ScrollBehavior.'
+      );
+    }
+
+    /**
+     * indicates if an element has scrollable space in the provided axis
+     * @method hasScrollableSpace
+     * @param {Node} el
+     * @param {String} axis
+     * @returns {Boolean}
+     */
+    function hasScrollableSpace(el, axis) {
+      if (axis === 'Y') {
+        return el.clientHeight + ROUNDING_TOLERANCE < el.scrollHeight;
+      }
+
+      if (axis === 'X') {
+        return el.clientWidth + ROUNDING_TOLERANCE < el.scrollWidth;
+      }
+    }
+
+    /**
+     * indicates if an element has a scrollable overflow property in the axis
+     * @method canOverflow
+     * @param {Node} el
+     * @param {String} axis
+     * @returns {Boolean}
+     */
+    function canOverflow(el, axis) {
+      var overflowValue = w.getComputedStyle(el, null)['overflow' + axis];
+
+      return overflowValue === 'auto' || overflowValue === 'scroll';
+    }
+
+    /**
+     * indicates if an element can be scrolled in either axis
+     * @method isScrollable
+     * @param {Node} el
+     * @param {String} axis
+     * @returns {Boolean}
+     */
+    function isScrollable(el) {
+      var isScrollableY = hasScrollableSpace(el, 'Y') && canOverflow(el, 'Y');
+      var isScrollableX = hasScrollableSpace(el, 'X') && canOverflow(el, 'X');
+
+      return isScrollableY || isScrollableX;
+    }
+
+    /**
+     * finds scrollable parent of an element
+     * @method findScrollableParent
+     * @param {Node} el
+     * @returns {Node} el
+     */
+    function findScrollableParent(el) {
+      while (el !== d.body && isScrollable(el) === false) {
+        el = el.parentNode || el.host;
+      }
+
+      return el;
+    }
+
+    /**
+     * self invoked function that, given a context, steps through scrolling
+     * @method step
+     * @param {Object} context
+     * @returns {undefined}
+     */
+    function step(context) {
+      var time = now();
+      var value;
+      var currentX;
+      var currentY;
+      var elapsed = (time - context.startTime) / SCROLL_TIME;
+
+      // avoid elapsed times higher than one
+      elapsed = elapsed > 1 ? 1 : elapsed;
+
+      // apply easing to elapsed time
+      value = ease(elapsed);
+
+      currentX = context.startX + (context.x - context.startX) * value;
+      currentY = context.startY + (context.y - context.startY) * value;
+
+      context.method.call(context.scrollable, currentX, currentY);
+
+      // scroll more if we have not reached our destination
+      if (currentX !== context.x || currentY !== context.y) {
+        w.requestAnimationFrame(step.bind(w, context));
+      }
+    }
+
+    /**
+     * scrolls window or element with a smooth behavior
+     * @method smoothScroll
+     * @param {Object|Node} el
+     * @param {Number} x
+     * @param {Number} y
+     * @returns {undefined}
+     */
+    function smoothScroll(el, x, y) {
+      var scrollable;
+      var startX;
+      var startY;
+      var method;
+      var startTime = now();
+
+      // define scroll context
+      if (el === d.body) {
+        scrollable = w;
+        startX = w.scrollX || w.pageXOffset;
+        startY = w.scrollY || w.pageYOffset;
+        method = original.scroll;
+      } else {
+        scrollable = el;
+        startX = el.scrollLeft;
+        startY = el.scrollTop;
+        method = scrollElement;
+      }
+
+      // scroll looping over a frame
+      step({
+        scrollable: scrollable,
+        method: method,
+        startTime: startTime,
+        startX: startX,
+        startY: startY,
+        x: x,
+        y: y
+      });
+    }
+
+    // ORIGINAL METHODS OVERRIDES
+    // w.scroll and w.scrollTo
+    w.scroll = w.scrollTo = function() {
+      // avoid action when no arguments are passed
+      if (arguments[0] === undefined) {
+        return;
+      }
+
+      // avoid smooth behavior if not required
+      if (shouldBailOut(arguments[0]) === true) {
+        original.scroll.call(
+          w,
+          arguments[0].left !== undefined
+            ? arguments[0].left
+            : typeof arguments[0] !== 'object'
+              ? arguments[0]
+              : w.scrollX || w.pageXOffset,
+          // use top prop, second argument if present or fallback to scrollY
+          arguments[0].top !== undefined
+            ? arguments[0].top
+            : arguments[1] !== undefined
+              ? arguments[1]
+              : w.scrollY || w.pageYOffset
+        );
+
+        return;
+      }
+
+      // LET THE SMOOTHNESS BEGIN!
+      smoothScroll.call(
+        w,
+        d.body,
+        arguments[0].left !== undefined
+          ? ~~arguments[0].left
+          : w.scrollX || w.pageXOffset,
+        arguments[0].top !== undefined
+          ? ~~arguments[0].top
+          : w.scrollY || w.pageYOffset
+      );
+    };
+
+    // w.scrollBy
+    w.scrollBy = function() {
+      // avoid action when no arguments are passed
+      if (arguments[0] === undefined) {
+        return;
+      }
+
+      // avoid smooth behavior if not required
+      if (shouldBailOut(arguments[0])) {
+        original.scrollBy.call(
+          w,
+          arguments[0].left !== undefined
+            ? arguments[0].left
+            : typeof arguments[0] !== 'object' ? arguments[0] : 0,
+          arguments[0].top !== undefined
+            ? arguments[0].top
+            : arguments[1] !== undefined ? arguments[1] : 0
+        );
+
+        return;
+      }
+
+      // LET THE SMOOTHNESS BEGIN!
+      smoothScroll.call(
+        w,
+        d.body,
+        ~~arguments[0].left + (w.scrollX || w.pageXOffset),
+        ~~arguments[0].top + (w.scrollY || w.pageYOffset)
+      );
+    };
+
+    // Element.prototype.scroll and Element.prototype.scrollTo
+    Element.prototype.scroll = Element.prototype.scrollTo = function() {
+      // avoid action when no arguments are passed
+      if (arguments[0] === undefined) {
+        return;
+      }
+
+      // avoid smooth behavior if not required
+      if (shouldBailOut(arguments[0]) === true) {
+        // if one number is passed, throw error to match Firefox implementation
+        if (typeof arguments[0] === 'number' && arguments[1] === undefined) {
+          throw new SyntaxError('Value could not be converted');
+        }
+
+        original.elementScroll.call(
+          this,
+          // use left prop, first number argument or fallback to scrollLeft
+          arguments[0].left !== undefined
+            ? ~~arguments[0].left
+            : typeof arguments[0] !== 'object' ? ~~arguments[0] : this.scrollLeft,
+          // use top prop, second argument or fallback to scrollTop
+          arguments[0].top !== undefined
+            ? ~~arguments[0].top
+            : arguments[1] !== undefined ? ~~arguments[1] : this.scrollTop
+        );
+
+        return;
+      }
+
+      var left = arguments[0].left;
+      var top = arguments[0].top;
+
+      // LET THE SMOOTHNESS BEGIN!
+      smoothScroll.call(
+        this,
+        this,
+        typeof left === 'undefined' ? this.scrollLeft : ~~left,
+        typeof top === 'undefined' ? this.scrollTop : ~~top
+      );
+    };
+
+    // Element.prototype.scrollBy
+    Element.prototype.scrollBy = function() {
+      // avoid action when no arguments are passed
+      if (arguments[0] === undefined) {
+        return;
+      }
+
+      // avoid smooth behavior if not required
+      if (shouldBailOut(arguments[0]) === true) {
+        original.elementScroll.call(
+          this,
+          arguments[0].left !== undefined
+            ? ~~arguments[0].left + this.scrollLeft
+            : ~~arguments[0] + this.scrollLeft,
+          arguments[0].top !== undefined
+            ? ~~arguments[0].top + this.scrollTop
+            : ~~arguments[1] + this.scrollTop
+        );
+
+        return;
+      }
+
+      this.scroll({
+        left: ~~arguments[0].left + this.scrollLeft,
+        top: ~~arguments[0].top + this.scrollTop,
+        behavior: arguments[0].behavior
+      });
+    };
+
+    // Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function() {
+      // avoid smooth behavior if not required
+      if (shouldBailOut(arguments[0]) === true) {
+        original.scrollIntoView.call(
+          this,
+          arguments[0] === undefined ? true : arguments[0]
+        );
+
+        return;
+      }
+
+      // LET THE SMOOTHNESS BEGIN!
+      var scrollableParent = findScrollableParent(this);
+      var parentRects = scrollableParent.getBoundingClientRect();
+      var clientRects = this.getBoundingClientRect();
+
+      if (scrollableParent !== d.body) {
+        // reveal element inside parent
+        smoothScroll.call(
+          this,
+          scrollableParent,
+          scrollableParent.scrollLeft + clientRects.left - parentRects.left,
+          scrollableParent.scrollTop + clientRects.top - parentRects.top
+        );
+
+        // reveal parent in viewport unless is fixed
+        if (w.getComputedStyle(scrollableParent).position !== 'fixed') {
+          w.scrollBy({
+            left: parentRects.left,
+            top: parentRects.top,
+            behavior: 'smooth'
+          });
+        }
+      } else {
+        // reveal element in viewport
+        w.scrollBy({
+          left: clientRects.left,
+          top: clientRects.top,
+          behavior: 'smooth'
+        });
+      }
+    };
+  }
+
+  if (true) {
+    // commonjs
+    module.exports = { polyfill: polyfill };
+  } else // removed by dead control flow
+{}
+
+}());
 
 
 /***/ },
@@ -10212,6 +10650,18 @@ tippy.setDefaultProps({
 /******/ 		__webpack_require__.amdO = {};
 /******/ 	})();
 /******/ 	
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/define property getters */
 /******/ 	(() => {
 /******/ 		// define getter functions for harmony exports
@@ -10344,37 +10794,44 @@ const OptionsDefaults = {
         "rightright1col",
         "none",
     ],
+    UseBodyBannerImageAsBackground: false,
 };
 
 ;// ./node_modules/@4site/engrid-scripts/dist/interfaces/upsell-options.js
 const UpsellOptionsDefaults = {
     image: "https://picsum.photos/480/650",
     imagePosition: "left",
-    title: "Will you change your gift to just {new-amount} a month to boost your impact?",
-    paragraph: "Make a monthly pledge today to support us with consistent, reliable resources during emergency moments.",
-    yesLabel: "Yes! Process My <br> {new-amount} monthly gift",
-    noLabel: "No, thanks. Continue with my <br> {old-amount} one-time gift",
+    title: "Will you change your gift to just {new-amount} {new-frequency} to boost your impact?",
+    paragraph: "Make a {new-frequency} pledge today to support us with consistent, reliable resources during emergency moments.",
+    yesLabel: "Yes! Process My <br> {new-amount} {new-frequency} gift",
+    noLabel: "No, thanks. Continue with my <br> {old-amount} {old-frequency} gift",
     otherAmount: true,
-    otherLabel: "Or enter a different monthly amount:",
+    otherLabel: "Or enter a different {new-frequency} amount:",
     upsellOriginalGiftAmountFieldName: "",
     amountRange: [
-        { max: 10, suggestion: 5 },
-        { max: 15, suggestion: 7 },
-        { max: 20, suggestion: 8 },
-        { max: 25, suggestion: 9 },
-        { max: 30, suggestion: 10 },
-        { max: 35, suggestion: 11 },
-        { max: 40, suggestion: 12 },
-        { max: 50, suggestion: 14 },
-        { max: 100, suggestion: 15 },
-        { max: 200, suggestion: 19 },
-        { max: 300, suggestion: 29 },
-        { max: 500, suggestion: "Math.ceil((amount / 12)/5)*5" },
+        { max: 10, suggestion: 5, frequency: "monthly" },
+        { max: 15, suggestion: 7, frequency: "monthly" },
+        { max: 20, suggestion: 8, frequency: "monthly" },
+        { max: 25, suggestion: 9, frequency: "monthly" },
+        { max: 30, suggestion: 10, frequency: "monthly" },
+        { max: 35, suggestion: 11, frequency: "monthly" },
+        { max: 40, suggestion: 12, frequency: "monthly" },
+        { max: 50, suggestion: 14, frequency: "monthly" },
+        { max: 100, suggestion: 15, frequency: "monthly" },
+        { max: 200, suggestion: 19, frequency: "monthly" },
+        { max: 300, suggestion: 29, frequency: "monthly" },
+        {
+            max: 500,
+            suggestion: "Math.ceil((amount / 12)/5)*5",
+            frequency: "monthly",
+        },
     ],
+    upsellToFrequency: "monthly",
     minAmount: 0,
     canClose: true,
     submitOnClose: false,
     oneTime: true,
+    monthly: false,
     annual: false,
     disablePaymentMethods: [],
     skipUpsell: false,
@@ -10415,6 +10872,21 @@ const nlTranslation = [
     { field: "supporter.region", translation: "Provincie" },
     { field: "supporter.country", translation: "Country" },
 ];
+// Page-language layer: keyed by lowercase 2-letter language code
+// (see ENGrid.getPageLanguage()), applied as the base translation layer
+// before any country-specific translations.
+const esTranslation = [
+    { field: "supporter.firstName", translation: "Nombre" },
+    { field: "supporter.lastName", translation: "Apellidos" },
+    { field: "supporter.emailAddress", translation: "Correo electrónico" },
+    { field: "supporter.phoneNumber", translation: "Teléfono" },
+    { field: "supporter.address1", translation: "Dirección" },
+    { field: "supporter.address2", translation: "Departamento/Piso" },
+    { field: "supporter.postcode", translation: "Código Postal" },
+    { field: "supporter.city", translation: "Ciudad" },
+    { field: "supporter.region", translation: "Provincia/Estado" },
+    { field: "supporter.country", translation: "País" },
+];
 const TranslateOptionsDefaults = {
     BR: ptbrTranslation,
     BRA: ptbrTranslation,
@@ -10424,6 +10896,65 @@ const TranslateOptionsDefaults = {
     FRA: frTranslation,
     NL: nlTranslation,
     NLD: nlTranslation,
+    es: esTranslation,
+};
+
+;// ./node_modules/@4site/engrid-scripts/dist/interfaces/i18n-options.js
+const I18nDefaults = {
+    en: {
+        "rememberMe.label": "Remember Me",
+        "rememberMe.clearLabel": "(clear autofill)",
+        "rememberMe.tooltip": "Check “{label}” to complete forms on this device faster. While your financial information won’t be stored, you should only check this box from a personal device. Click “{clearLabel}” to remove the information from your device at any time.",
+        "rememberMe.iframeTitle": "Remember Me iframe",
+        "translateFields.state": "State",
+        "translateFields.stateGeneric": "Province / State",
+        "translateFields.stateRegion": "State/Region",
+        "translateFields.provinceTerritory": "Province / Territory",
+        "translateFields.selectState": "Select State",
+        "translateFields.select": "Select",
+        "translateFields.recipientTo": "To:",
+        "a11y.errorSummary": "There are {count} errors: {messages}.",
+        // InputPlaceholders component defaults
+        "placeholders.firstName": "First Name",
+        "placeholders.lastName": "Last Name",
+        "placeholders.emailAddress": "Email Address",
+        "placeholders.phoneNumber": "Phone Number",
+        "placeholders.phoneNumberOptional": "Phone Number (Optional)",
+        "placeholders.phoneNumber2Optional": "000-000-0000 (Optional)",
+        "placeholders.country": "Country",
+        "placeholders.address1": "Street Address",
+        "placeholders.address2": "Apt., Ste., Bldg.",
+        "placeholders.city": "City",
+        "placeholders.region": "Region",
+        "placeholders.postcode": "ZIP Code",
+    },
+    es: {
+        "rememberMe.label": "Recuérdame",
+        "rememberMe.clearLabel": "(borrar autocompletado)",
+        "rememberMe.tooltip": "Marque “{label}” para completar los formularios en este dispositivo más rápido. Aunque su información financiera no se almacenará, solo debe marcar esta casilla desde un dispositivo personal. Haga clic en “{clearLabel}” para eliminar la información de su dispositivo en cualquier momento.",
+        "rememberMe.iframeTitle": "iframe de Recuérdame",
+        "translateFields.state": "Estado",
+        "translateFields.stateGeneric": "Provincia/Estado",
+        "translateFields.stateRegion": "Estado/Región",
+        "translateFields.provinceTerritory": "Provincia/Territorio",
+        "translateFields.selectState": "Seleccione Estado",
+        "translateFields.select": "Seleccione",
+        "translateFields.recipientTo": "Para:",
+        "a11y.errorSummary": "Hay {count} errores: {messages}.",
+        // InputPlaceholders component defaults
+        "placeholders.firstName": "Nombre",
+        "placeholders.lastName": "Apellidos",
+        "placeholders.emailAddress": "Correo electrónico",
+        "placeholders.phoneNumber": "Teléfono",
+        "placeholders.phoneNumberOptional": "Teléfono (opcional)",
+        "placeholders.phoneNumber2Optional": "000-000-0000 (opcional)",
+        "placeholders.country": "País",
+        "placeholders.address1": "Calle y número",
+        "placeholders.address2": "Depto., Piso, Edif.",
+        "placeholders.city": "Ciudad",
+        "placeholders.region": "Provincia/Estado",
+        "placeholders.postcode": "Código Postal",
+    },
 };
 
 ;// ./node_modules/@4site/engrid-scripts/dist/interfaces/exit-intent-options.js
@@ -10454,6 +10985,27 @@ const FrequencyUpsellOptionsDefaults = {
     onOpen: () => { },
     onAccept: () => { },
     onDecline: () => { },
+    showCloseX: false,
+    submitOnClose: false,
+};
+
+;// ./node_modules/@4site/engrid-scripts/dist/interfaces/iframe-queue-options.js
+/**
+ * Configuration interfaces for the Iframe Queue component.
+ *
+ * The Iframe Queue loads a sequence of embedded Engaging Networks pages
+ * one at a time, passes field values into them via `postMessage`, and
+ * exposes a global `IframeQueueEvents` instance so external code can
+ * subscribe to chain-completion. See iframe-queue.ts for the component.
+ *
+ * Configuration may be supplied either programmatically (via
+ * `IframeQueue.getInstance().enqueue(...).process()`) or declaratively
+ * by setting `window.EngridIframeQueue` on the host EN page before
+ * the ENgrid bundle loads.
+ */
+const IframeQueueOptionsDefaults = {
+    items: [],
+    autoStart: true,
 };
 
 ;// ./node_modules/@4site/engrid-scripts/dist/loader.js
@@ -10641,6 +11193,7 @@ var dist = __webpack_require__(3199);
 class EnForm {
     constructor() {
         this.logger = new EngridLogger("EnForm");
+        this._onIntentSubmit = new dist/* SignalDispatcher */.UD();
         this._onSubmit = new dist/* SignalDispatcher */.UD();
         this._onValidate = new dist/* SignalDispatcher */.UD();
         this._onError = new dist/* SignalDispatcher */.UD();
@@ -10654,6 +11207,10 @@ class EnForm {
             EnForm.instance = new EnForm();
         }
         return EnForm.instance;
+    }
+    dispatchIntentSubmit() {
+        this._onIntentSubmit.dispatch();
+        this.logger.log("dispatchIntentSubmit");
     }
     dispatchSubmit() {
         this._onSubmit.dispatch();
@@ -10678,14 +11235,41 @@ class EnForm {
             this.logger.log("submitForm");
         }
     }
+    /**
+     * onIntentSubmit is dispatched when a submit button is clicked,
+     * or a digital wallet submission is initiated,
+     * but before server-side validation or the actual submit event.
+     * This allows you to run code at the moment the user intends to submit,
+     * such as triggering data formatting, analytics events, or other pre-submit actions.
+     * Actions that rely on fully processed form data or validation results should use the onSubmit event instead.
+     * Note: onSubmit will also dispatch onIntentSubmit, so do not repeat actions in both events.
+     */
+    get onIntentSubmit() {
+        return this._onIntentSubmit.asEvent();
+    }
+    /**
+     * onSubmit is dispatched when the form is submitted, after validation has passed.
+     * This is the main event to listen to for form submissions, as it indicates that the user has successfully submitted the form and all validation checks have been passed.
+     * This event uses window.enOnSubmit, which is called by Engaging Networks' JavaScript when the form is submitted.
+     * At the time of writing, enOnSubmit does not trigger when a user submits via a digital wallet, use onIntentSubmit to listen for those submission attempts.
+     * Note: onSubmit will also dispatch onIntentSubmit, so do not repeat actions in both events.
+     */
     get onSubmit() {
         return this._onSubmit.asEvent();
     }
-    get onError() {
-        return this._onError.asEvent();
-    }
+    /**
+     * onValidate is dispatched using window.enOnValidate, which is called by Engaging Networks' JavaScript
+     * when the form is being validated, before submission. This only occurs after ENgrid's client-side validation has passed, but before server-side validation.
+     */
     get onValidate() {
         return this._onValidate.asEvent();
+    }
+    /**
+     * onError is dispatched using window.enOnError, which is called by Engaging Networks' JavaScript when a server-side validation error occurs on form submission.
+     * This allows you to listen for validation errors and respond accordingly, such as displaying custom error messages or triggering analytics events.
+     */
+    get onError() {
+        return this._onError.asEvent();
     }
 }
 
@@ -10709,12 +11293,7 @@ class DonationAmount {
                     this.amount = parseFloat(element.value);
                 }
                 else if (element.name == other) {
-                    const cleanedAmount = engrid_ENGrid.cleanAmount(element.value);
-                    element.value =
-                        cleanedAmount % 1 != 0
-                            ? cleanedAmount.toFixed(2)
-                            : cleanedAmount.toString();
-                    this.amount = cleanedAmount;
+                    this.syncOtherAmount(element, true);
                 }
             }
         });
@@ -10722,11 +11301,29 @@ class DonationAmount {
         const otherField = document.querySelector(`[name='${this._other}']`);
         if (otherField) {
             otherField.addEventListener("keyup", (e) => {
-                this.amount = engrid_ENGrid.cleanAmount(otherField.value);
+                this.syncOtherAmount(otherField);
             });
         }
         // Load the current amount
         this.load();
+    }
+    // The "other" radio is the one whose value isn't a numeric amount
+    // (EN renders it as value="other"), so it cleans to 0
+    isOtherAmountSelected() {
+        const selectedAmount = document.querySelector(`input[name="${this._radios}"]:checked`);
+        return (selectedAmount !== null &&
+            engrid_ENGrid.cleanAmount(selectedAmount.value) === 0);
+    }
+    syncOtherAmount(field, formatValue = false) {
+        const otherIsSelected = this.isOtherAmountSelected();
+        const amount = engrid_ENGrid.cleanAmount(field.value);
+        if (!otherIsSelected || amount <= 0) {
+            return;
+        }
+        if (formatValue) {
+            field.value = amount % 1 != 0 ? amount.toFixed(2) : amount.toString();
+        }
+        this.amount = amount;
     }
     static getInstance(radios = "transaction.donationAmt", other = "transaction.donationAmt.other") {
         if (!DonationAmount.instance) {
@@ -10825,6 +11422,8 @@ class DonationAmount {
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/engrid.js
+
+const errorCallbacks = new Map();
 class engrid_ENGrid {
     constructor() {
         if (!engrid_ENGrid.enForm) {
@@ -10997,13 +11596,31 @@ class engrid_ENGrid {
         return null;
     }
     static isThankYouPage() {
-        return this.getPageNumber() === this.getPageCount();
+        return (this.getPageNumber() === this.getPageCount() && this.getPageCount() > 1);
     }
     // Return the current page ID
     static getPageID() {
         if ("pageJson" in window)
             return window.pageJson.campaignPageId;
         return 0;
+    }
+    /**
+     * Parse the numeric Page ID out of a Engaging Networks URL.
+     * EN page URLs follow the pattern `https://<host>/page/<PAGE_ID>/<slug>/...`.
+     * Used by the Iframe Queue component to match Thank-You-page pings from
+     * embedded iframes against the queued URL that was submitted.
+     *
+     * @param url Full URL string to parse.
+     * @returns The numeric Page ID, or 0 if it could not be parsed.
+     */
+    static getPageIdFromUrl(url) {
+        if (!url)
+            return 0;
+        const match = url.match(/\/page\/(\d+)(?:\/|$|\?|#)/);
+        if (!match)
+            return 0;
+        const id = parseInt(match[1], 10);
+        return Number.isFinite(id) ? id : 0;
     }
     // Return the client ID
     static getClientID() {
@@ -11013,7 +11630,15 @@ class engrid_ENGrid {
     }
     //returns 'us or 'ca' based on the client ID
     static getDataCenter() {
-        return engrid_ENGrid.getClientID() >= 10000 ? "us" : "ca";
+        if (engrid_ENGrid.getClientID() > 20000) {
+            return "us2";
+        }
+        else if (engrid_ENGrid.getClientID() > 10000) {
+            return "us";
+        }
+        else {
+            return "ca";
+        }
     }
     // Return the current page type
     static getPageType() {
@@ -11070,6 +11695,52 @@ class engrid_ENGrid {
         else {
             return "UNKNOWN";
         }
+    }
+    // Return the current page language: the first 2 characters of
+    // pageJson.locale, lowercased (e.g. "es_US" -> "es"). Defaults to "en"
+    // when pageJson or the locale is not available.
+    static getPageLanguage() {
+        var _a;
+        const locale = (_a = window.pageJson) === null || _a === void 0 ? void 0 : _a.locale;
+        if (typeof locale === "string" && locale.length >= 2) {
+            return locale.substring(0, 2).toLowerCase();
+        }
+        return "en";
+    }
+    // Return the merged i18n dictionaries: window.EngridI18n merged over
+    // I18nDefaults, key-by-key per language, without mutating the defaults.
+    static getI18nDictionaries() {
+        const dictionaries = Object.assign({}, I18nDefaults);
+        if ("EngridI18n" in window && window.EngridI18n) {
+            for (const lang in window.EngridI18n) {
+                dictionaries[lang] = Object.assign(Object.assign({}, (I18nDefaults[lang] || {})), window.EngridI18n[lang]);
+            }
+        }
+        return dictionaries;
+    }
+    // Check if an i18n key is defined in the merged dictionary for the current
+    // page language (the English fallback does not count).
+    static hasI18nKey(key) {
+        var _a;
+        const language = engrid_ENGrid.getPageLanguage();
+        return key in ((_a = engrid_ENGrid.getI18nDictionaries()[language]) !== null && _a !== void 0 ? _a : {});
+    }
+    // Translate a UI string key using the i18n dictionary: I18nDefaults merged
+    // with the window.EngridI18n global (key-by-key, per language, without
+    // mutating the defaults). Resolution order: current page language bucket ->
+    // English bucket -> the key itself. {placeholders} are interpolated from
+    // the replacements argument.
+    static t(key, replacements = {}) {
+        var _a, _b, _c, _d;
+        const dictionaries = engrid_ENGrid.getI18nDictionaries();
+        const language = engrid_ENGrid.getPageLanguage();
+        let text = (_d = (_b = (_a = dictionaries[language]) === null || _a === void 0 ? void 0 : _a[key]) !== null && _b !== void 0 ? _b : (_c = dictionaries["en"]) === null || _c === void 0 ? void 0 : _c[key]) !== null && _d !== void 0 ? _d : key;
+        for (const name in replacements) {
+            // Function replacement: the value is inserted literally, so $-sequences
+            // ($&, $$, ...) in user-facing text are never interpreted.
+            text = text.replace(new RegExp(`\\{${name}\\}`, "g"), () => String(replacements[name]));
+        }
+        return text;
     }
     // Set body engrid data attributes
     static setBodyData(dataName, value) {
@@ -11245,6 +11916,7 @@ class engrid_ENGrid {
             else {
                 errorMessageElement.innerHTML = errorMessage;
             }
+            errorCallbacks.forEach((callback) => callback());
         }
     }
     static removeError(element) {
@@ -11329,6 +12001,24 @@ class engrid_ENGrid {
     // This function is used to run a callback function when an error is displayed on the page
     static watchForError(callback) {
         const errorElement = document.querySelector(".en__errorList");
+        const callbackType = engrid_ENGrid.getErrorCallbackKey(callback);
+        // Register callback so setError can trigger it too
+        if (!errorCallbacks.has(callbackType)) {
+            errorCallbacks.set(callbackType, callback);
+        }
+        if (errorElement && !errorElement.dataset[callbackType]) {
+            errorElement.dataset[callbackType] = "true";
+            const observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+                        callback();
+                    }
+                });
+            });
+            observer.observe(errorElement, { childList: true });
+        }
+    }
+    static getErrorCallbackKey(callback) {
         const capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);
         // Avoid duplicate callbacks
         let callbackType = callback.toString();
@@ -11342,18 +12032,7 @@ class engrid_ENGrid {
         callbackType = callbackType.replace(/[^a-zA-Z0-9]/g, "");
         // Limit to 20 characters and add prefix
         callbackType = callbackType.substring(0, 20);
-        callbackType = "engrid" + capitalize(callbackType);
-        if (errorElement && !errorElement.dataset[callbackType]) {
-            errorElement.dataset[callbackType] = "true";
-            const observer = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-                        callback();
-                    }
-                });
-            });
-            observer.observe(errorElement, { childList: true });
-        }
+        return "engrid" + capitalize(callbackType);
     }
     // Get the Payment Type
     static getPaymentType() {
@@ -11393,7 +12072,94 @@ class engrid_ENGrid {
     }
 }
 
+;// ./node_modules/@4site/engrid-scripts/dist/logger.js
+
+/**
+ * A better logger. It only works if debug is enabled.
+ */
+class EngridLogger {
+    constructor(prefix, color, background, emoji) {
+        this.prefix = "";
+        this.color = "black";
+        this.background = "white";
+        this.emoji = "";
+        if (emoji) {
+            this.emoji = emoji;
+        }
+        else {
+            switch (color) {
+                case "red":
+                    this.emoji = "🔴";
+                    break;
+                case "green":
+                    this.emoji = "🟢";
+                    break;
+                case "blue":
+                    this.emoji = "🔵";
+                    break;
+                case "yellow":
+                    this.emoji = "🟡";
+                    this.background = "black";
+                    break;
+                case "purple":
+                    this.emoji = "🟣";
+                    break;
+                case "black":
+                default:
+                    this.emoji = "⚫";
+                    break;
+            }
+        }
+        if (prefix) {
+            this.prefix = `[ENgrid ${prefix}]`;
+        }
+        if (color) {
+            this.color = color;
+        }
+        if (background) {
+            this.background = background;
+        }
+    }
+    get log() {
+        if (!engrid_ENGrid.debug && engrid_ENGrid.getUrlParameter("debug") !== "log") {
+            return () => { };
+        }
+        return console.log.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
+    }
+    get success() {
+        if (!engrid_ENGrid.debug) {
+            return () => { };
+        }
+        return console.log.bind(window.console, "%c ✅ " + this.prefix + " %s", `color: green; background-color: white; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
+    }
+    get danger() {
+        if (!engrid_ENGrid.debug) {
+            return () => { };
+        }
+        return console.log.bind(window.console, "%c ⛔️ " + this.prefix + " %s", `color: red; background-color: white; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
+    }
+    get warn() {
+        if (!engrid_ENGrid.debug) {
+            return () => { };
+        }
+        return console.warn.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
+    }
+    get dir() {
+        if (!engrid_ENGrid.debug) {
+            return () => { };
+        }
+        return console.dir.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
+    }
+    get error() {
+        if (!engrid_ENGrid.debug) {
+            return () => { };
+        }
+        return console.error.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
+    }
+}
+
 ;// ./node_modules/@4site/engrid-scripts/dist/events/donation-frequency.js
+
 
 
 class DonationFrequency {
@@ -11402,6 +12168,8 @@ class DonationFrequency {
         this._frequency = "onetime";
         this._recurring = "n";
         this._dispatch = true;
+        this._frequencies = ["onetime"];
+        this.logger = new EngridLogger("DonationFrequency", "white", "black", "💰");
         // Watch the Radios for Changes
         document.addEventListener("change", (e) => {
             const element = e.target;
@@ -11453,6 +12221,9 @@ class DonationFrequency {
     get onFrequencyChange() {
         return this._onFrequencyChange.asEvent();
     }
+    get frequencies() {
+        return this._frequencies;
+    }
     // Set amount var with currently selected amount
     load() {
         var _a;
@@ -11469,6 +12240,11 @@ class DonationFrequency {
                 ((_a = window.EngagingNetworks.require._defined.enjs
                     .getSupporterData("recurrpay")) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || "n";
         }
+        // List of available frequencies on the form
+        this._frequencies = Array.from(document.querySelectorAll('input[name="transaction.recurrfreq"]'))
+            .filter((el) => el instanceof HTMLInputElement)
+            .map((el) => el.value.toLowerCase());
+        this.logger.log(`Loaded with frequency: ${this.frequency} and recurring: ${this.recurring} \nAvailable frequencies: ${this._frequencies.join(", ")}`);
         // ENGrid.enParseDependencies();
     }
     // Force a new recurrency
@@ -11504,6 +12280,9 @@ class DonationFrequency {
             else {
                 this.setRecurrency("Y", dispatch);
             }
+        }
+        else {
+            this.logger.warn(`Attempted to set a frequency of "${freq}" but it was not found on the form.`);
         }
         // Revert dispatch to default value (true)
         this._dispatch = true;
@@ -11642,6 +12421,101 @@ class RememberMeEvents {
     }
 }
 
+;// ./node_modules/@4site/engrid-scripts/dist/events/iframe-queue-events.js
+/* unused harmony import specifier */ var SignalDispatcher;
+/* unused harmony import specifier */ var SimpleEventDispatcher;
+/* unused harmony import specifier */ var iframe_queue_events_EngridLogger;
+/**
+ * Singleton event hub for the Iframe Queue component.
+ *
+ * Mirrors the structure of RememberMeEvents: private constructor,
+ * static `getInstance()`, internal dispatchers exposed via `.asEvent()`
+ * getters, and `dispatch*` methods called by the IframeQueue class.
+ *
+ * External code subscribes to these events to react to queue
+ * lifecycle without holding a reference to the IframeQueue itself.
+ * The TNC Bequest Lightbox, for example, will subscribe to
+ * `onChainComplete` so it only opens after the QCB opt-in chain has
+ * finished submitting.
+ *
+ * @example
+ *   IframeQueueEvents.getInstance().onChainComplete.subscribe(() => {
+ *     openBequestLightbox();
+ *   });
+ */
+
+
+class IframeQueueEvents {
+    constructor() {
+        this.logger = new iframe_queue_events_EngridLogger("IframeQueueEvents");
+        this._onChainComplete = new SignalDispatcher();
+        this._onChainError = new SimpleEventDispatcher();
+        this._onItemStart = new SimpleEventDispatcher();
+        this._onItemComplete = new SimpleEventDispatcher();
+        this._onItemError = new SimpleEventDispatcher();
+    }
+    /** Returns the shared IframeQueueEvents singleton. */
+    static getInstance() {
+        if (!IframeQueueEvents.instance) {
+            IframeQueueEvents.instance = new IframeQueueEvents();
+        }
+        return IframeQueueEvents.instance;
+    }
+    /**
+     * Fires once when the entire queue completes successfully.
+     * Use to trigger work that must wait for all chained iframe submits
+     * (e.g. opening a bequest lightbox after QCB opt-ins are recorded).
+     */
+    get onChainComplete() {
+        return this._onChainComplete.asEvent();
+    }
+    /**
+     * Fires when the queue aborts due to an error (timeout, iframe load
+     * error, or error message from an embedded page). Carries the failed
+     * item (if known) and the underlying error.
+     */
+    get onChainError() {
+        return this._onChainError.asEvent();
+    }
+    /** Fires immediately before an item begins processing. */
+    get onItemStart() {
+        return this._onItemStart.asEvent();
+    }
+    /** Fires when an item completes (its iframe reached its Thank You page). */
+    get onItemComplete() {
+        return this._onItemComplete.asEvent();
+    }
+    /** Fires when an item fails. The queue aborts after this event. */
+    get onItemError() {
+        return this._onItemError.asEvent();
+    }
+    /** Internal — called by IframeQueue when the queue drains successfully. */
+    dispatchChainComplete() {
+        this.logger.log("dispatchChainComplete");
+        this._onChainComplete.dispatch();
+    }
+    /** Internal — called by IframeQueue when the queue aborts on error. */
+    dispatchChainError(payload) {
+        this.logger.log(`dispatchChainError: ${payload.message}`);
+        this._onChainError.dispatch(payload);
+    }
+    /** Internal — called by IframeQueue immediately before an item starts. */
+    dispatchItemStart(item) {
+        this.logger.log(`dispatchItemStart: ${item.url}`);
+        this._onItemStart.dispatch(item);
+    }
+    /** Internal — called by IframeQueue when an item finishes successfully. */
+    dispatchItemComplete(item) {
+        this.logger.log(`dispatchItemComplete: ${item.url}`);
+        this._onItemComplete.dispatch(item);
+    }
+    /** Internal — called by IframeQueue when an item errors. */
+    dispatchItemError(item, error) {
+        this.logger.log(`dispatchItemError: ${item.url} - ${error.message}`);
+        this._onItemError.dispatch({ item, error });
+    }
+}
+
 ;// ./node_modules/@4site/engrid-scripts/dist/events/country.js
 
 
@@ -11687,6 +12561,7 @@ class Country {
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/events/index.js
+
 
 
 
@@ -11791,6 +12666,7 @@ class App extends engrid_ENGrid {
             }
         });
         // Client onSubmit and onError functions
+        this._form.onIntentSubmit.subscribe(() => this.onIntentSubmit());
         this._form.onSubmit.subscribe(() => this.onSubmit());
         this._form.onError.subscribe(() => this.onError());
         this._form.onValidate.subscribe(() => this.onValidate());
@@ -11808,6 +12684,7 @@ class App extends engrid_ENGrid {
         window.enOnSubmit = () => {
             this._form.submit = true;
             this._form.submitPromise = false;
+            this._form.dispatchIntentSubmit();
             this._form.dispatchSubmit();
             engrid_ENGrid.watchForError(engrid_ENGrid.enableSubmit);
             if (!this._form.submit)
@@ -11875,12 +12752,14 @@ class App extends engrid_ENGrid {
         new CustomCurrency();
         // Auto Country Select
         new AutoCountrySelect();
+        // Page Background
+        new PageBackground(this.options.UseBodyBannerImageAsBackground);
         // Add Image Attribution
         if (this.options.MediaAttribution)
             new MediaAttribution();
         // Apple Pay
         if (this.options.applePay)
-            new ApplePay();
+            ApplePay.getInstance();
         // Capitalize Fields
         if (this.options.CapitalizeFields)
             new CapitalizeFields();
@@ -11925,8 +12804,6 @@ class App extends engrid_ENGrid {
         new A11y();
         new AddNameToMessage();
         new ExpandRegionName();
-        // Page Background
-        new PageBackground();
         // Url Params to Form Fields
         new UrlToForm();
         // Required if Visible Fields
@@ -11951,10 +12828,11 @@ class App extends engrid_ENGrid {
         // Supporter Hub Features
         new SupporterHub();
         // Digital Wallets Features
-        if (engrid_ENGrid.getPageType() === "DONATION") {
+        if (engrid_ENGrid.getPageType() === "DONATION" ||
+            engrid_ENGrid.getPageType() === "EVENT") {
             new DigitalWallets();
-            new PreferredPaymentMethod();
         }
+        new PreferredPaymentMethod();
         // Mobile CTA
         new MobileCTA();
         // Live Frequency
@@ -12026,6 +12904,12 @@ class App extends engrid_ENGrid {
         if (this.options.onValidate) {
             this.logger.log("Client onValidate Triggered");
             this.options.onValidate();
+        }
+    }
+    onIntentSubmit() {
+        if (this.options.onIntentSubmit) {
+            this.logger.log("Client onIntentSubmit Triggered");
+            this.options.onIntentSubmit();
         }
     }
     onSubmit() {
@@ -12105,50 +12989,313 @@ const merchantCapabilities = window.merchantCapabilities;
 const merchantTotalLabel = window.merchantTotalLabel;
 class ApplePay {
     constructor() {
+        this.logger = new EngridLogger("ApplePay", "#000000", "#a6f3a6", "🍎");
         this.applePay = document.querySelector('.en__field__input.en__field__input--radio[value="applepay"]');
         this._amount = DonationAmount.getInstance();
         this._fees = ProcessingFees.getInstance();
         this._form = EnForm.getInstance();
+        // Client hook: runs after the built-in pre-flight, right before the Apple
+        // Pay sheet opens. Return false to abort. The hook shows its own errors
+        // with ENGrid.setError; the donation amount field error is cleared before
+        // every attempt.
+        this.beforeSession = null;
+        // Fields the wallet supplies via requiredBillingContactFields, so they are
+        // excluded from the mandatory-field pre-flight.
+        this.walletFields = [
+            "supporter.address1",
+            "supporter.address2",
+            "supporter.city",
+            "supporter.region",
+            "supporter.postcode",
+            "supporter.country",
+            "supporter.phoneNumber",
+        ];
+        // Field containers this component flagged with ENGrid.setError, so they can
+        // be cleared on the next attempt.
+        this.errorFields = [];
+        ApplePay.instance = this;
         this.checkApplePay();
+    }
+    static getInstance() {
+        if (!ApplePay.instance) {
+            ApplePay.instance = new ApplePay();
+        }
+        return ApplePay.instance;
+    }
+    // True when the page offers Apple Pay, either as a giveBySelect radio tile
+    // or as an option of the payment type select.
+    hasApplePayOption() {
+        if (this.applePay)
+            return true;
+        const paymentTypeField = engrid_ENGrid.getField("transaction.paymenttype");
+        if (!paymentTypeField || !paymentTypeField.options)
+            return false;
+        return Array.from(paymentTypeField.options).some((option) => option.value.toLowerCase() === "applepay");
     }
     checkApplePay() {
         return __awaiter(this, void 0, void 0, function* () {
-            const pageform = document.querySelector("form.en__component--page");
-            if (!this.applePay || !window.hasOwnProperty("ApplePaySession")) {
+            if (!this.hasApplePayOption() ||
+                !window.hasOwnProperty("ApplePaySession")) {
                 const applePayContainer = document.querySelector(".en__field__item.applepay");
                 if (applePayContainer)
                     applePayContainer.remove();
-                if (engrid_ENGrid.debug)
-                    console.log("Apple Pay DISABLED");
+                engrid_ENGrid.setBodyData("apple-pay-available", "false");
+                this.logger.log("DISABLED: not supported by this browser or page");
                 return false;
             }
-            const promise = ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
+            if (!merchantIdentifier) {
+                engrid_ENGrid.setBodyData("apple-pay-available", "false");
+                this.logger.log("DISABLED: window.merchantIdentifier is not defined");
+                return false;
+            }
             let applePayEnabled = false;
-            yield promise.then((canMakePayments) => {
-                applePayEnabled = canMakePayments;
-                if (canMakePayments) {
-                    let input = document.createElement("input");
-                    input.setAttribute("type", "hidden");
-                    input.setAttribute("name", "PkPaymentToken");
-                    input.setAttribute("id", "applePayToken");
-                    pageform.appendChild(input);
-                    this._form.onSubmit.subscribe(() => this.onPayClicked());
-                }
-            });
-            if (engrid_ENGrid.debug)
-                console.log("applePayEnabled", applePayEnabled);
-            let applePayWrapper = this.applePay.closest(".en__field__item");
-            if (applePayEnabled) {
-                // Set Apple Pay Class
-                applePayWrapper === null || applePayWrapper === void 0 ? void 0 : applePayWrapper.classList.add("applePayWrapper");
+            try {
+                applePayEnabled = yield ApplePaySession.canMakePaymentsWithActiveCard(merchantIdentifier);
             }
-            else {
-                // Hide Apple Pay Wrapper
-                if (applePayWrapper)
-                    applePayWrapper.style.display = "none";
+            catch (e) {
+                applePayEnabled = false;
             }
-            return applePayEnabled;
+            engrid_ENGrid.setBodyData("apple-pay-available", applePayEnabled ? "true" : "false");
+            if (!applePayEnabled) {
+                this.logger.log("DISABLED: no provisioned card");
+                return false;
+            }
+            // Hidden field that carries the wallet token to EN. Only create it if it
+            // doesn't exist yet, so we never post a duplicate PkPaymentToken.
+            if (!engrid_ENGrid.getField("PkPaymentToken")) {
+                engrid_ENGrid.createHiddenInput("PkPaymentToken").setAttribute("id", "applePayToken");
+            }
+            this.writeButtonContainer();
+            // Fallback trigger: an implicit submit (e.g. Enter key) while Apple Pay
+            // is selected and no token exists yet opens the sheet instead of
+            // submitting. After authorization the token is set and the submit
+            // passes through.
+            this._form.onSubmit.subscribe(() => this.onSubmitFallback());
+            this.logger.log("ENABLED");
+            return true;
         });
+    }
+    // Writes the native Apple Pay button container right before the submit
+    // button. CSS swaps it with the submit button while the applepay payment
+    // type is selected (data-engrid-payment-type="applepay").
+    writeButtonContainer() {
+        if (document.querySelector(".apple-pay-container"))
+            return;
+        if (!document.querySelector(".en__submit"))
+            return;
+        // The -apple-pay-button-* properties are set inline because cssnano's
+        // colormin rewrites the keyword "black" to #000 in built stylesheets,
+        // which is not a valid value for -apple-pay-button-style, so Safari
+        // drops it and falls back to white-outline.
+        engrid_ENGrid.addHtml('<div class="apple-pay-container showif-applepay-selected">' +
+            '<div class="apple-pay-button" role="button" tabindex="0" aria-label="Donate with Apple Pay" ' +
+            'style="-apple-pay-button-type: donate; -apple-pay-button-style: black;"></div>' +
+            "</div>", ".en__submit", "before");
+        const button = document.querySelector(".apple-pay-container .apple-pay-button");
+        if (!button)
+            return;
+        button.addEventListener("click", () => this.onPayClicked());
+        button.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                this.onPayClicked();
+            }
+        });
+    }
+    onSubmitFallback() {
+        const applePayToken = document.getElementById("applePayToken");
+        if (engrid_ENGrid.getPaymentType().toLowerCase() !== "applepay" ||
+            (applePayToken && applePayToken.value !== "")) {
+            return; // Not Apple Pay, or already authorized: let the submit proceed
+        }
+        if (!this._form.submit)
+            return; // Another component vetoed this submit
+        this._form.submit = false; // Veto the submit and open the sheet instead
+        this.onPayClicked();
+    }
+    onPayClicked() {
+        if (!this.preflight())
+            return;
+        this.openSession();
+    }
+    preflight() {
+        this.clearErrors();
+        // The wallet supplies billing address and phone, but nothing else. Flag
+        // empty mandatory fields before the sheet opens so a donor never
+        // authorizes a payment EN will bounce for a missing mandatory field.
+        const missing = this.missingMandatoryFields();
+        missing.forEach((field) => {
+            engrid_ENGrid.setError(field, "This field is required");
+            this.errorFields.push(field);
+        });
+        if (missing.length) {
+            this.scrollToError();
+            return false;
+        }
+        const amount = this._amount.amount;
+        if (!amount || amount <= 0) {
+            engrid_ENGrid.setError(".en__field--donationAmt", "Please select a gift amount.");
+            this.scrollToError();
+            return false;
+        }
+        // The client hook owns the donation amount field error from here on
+        engrid_ENGrid.removeError(".en__field--donationAmt");
+        if (this.beforeSession && this.beforeSession() === false) {
+            this.scrollToError();
+            return false;
+        }
+        return true;
+    }
+    // Scrolls to the first field flagged with a validation error so the donor
+    // sees what needs fixing; without this the button looks unresponsive.
+    scrollToError() {
+        const errorField = (this.errorFields[0] ||
+            document.querySelector(".en__field--validationFailed"));
+        if (errorField) {
+            errorField.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }
+    clearErrors() {
+        this.errorFields.forEach((field) => engrid_ENGrid.removeError(field));
+        this.errorFields = [];
+        engrid_ENGrid.removeError(".en__field--donationAmt");
+    }
+    // Every visible mandatory field container that is empty and that the
+    // wallet cannot fill.
+    missingMandatoryFields() {
+        const missing = [];
+        document
+            .querySelectorAll(".en__field.en__mandatory")
+            .forEach((field) => {
+            const fieldElement = field;
+            if (!engrid_ENGrid.isVisible(fieldElement))
+                return;
+            const input = fieldElement.querySelector("input, select, textarea");
+            if (!input || !input.name)
+                return;
+            if (this.walletFields.indexOf(input.name) !== -1)
+                return;
+            if (input.type === "radio" || input.type === "checkbox") {
+                if (!fieldElement.querySelector("input:checked")) {
+                    missing.push(fieldElement);
+                }
+                return;
+            }
+            if (input.value.trim() === "") {
+                missing.push(fieldElement);
+            }
+        });
+        return missing;
+    }
+    openSession() {
+        // ProcessingFees mirrors EN's own fee cover calculation, so the sheet
+        // total matches what EN will actually charge.
+        const donationAmount = (this._amount.amount + this._fees.fee).toFixed(2);
+        const request = {
+            supportedNetworks: merchantSupportedNetworks,
+            merchantCapabilities: merchantCapabilities,
+            countryCode: merchantCountryCode,
+            currencyCode: merchantCurrencyCode,
+            requiredBillingContactFields: ["postalAddress", "phone"],
+            total: {
+                label: merchantTotalLabel || merchantDisplayName || "Donation",
+                amount: donationAmount,
+                type: "final",
+            },
+        };
+        let session;
+        try {
+            session = new ApplePaySession(3, request);
+        }
+        catch (e) {
+            const errorTarget = (document.querySelector(".apple-pay-container") || document.querySelector(".en__submit"));
+            if (errorTarget) {
+                engrid_ENGrid.setError(errorTarget, "Apple Pay error: '" + e.message + "'");
+            }
+            this._form.dispatchError();
+            return;
+        }
+        const thisClass = this;
+        session.onvalidatemerchant = function (event) {
+            thisClass
+                .performValidation(event.validationURL)
+                .then(function (merchantSession) {
+                if (engrid_ENGrid.debug)
+                    console.log("Apple Pay merchantSession", merchantSession);
+                session.completeMerchantValidation(merchantSession);
+            })
+                .catch(function () {
+                session.abort();
+            });
+        };
+        session.onpaymentauthorized = function (event) {
+            thisClass.onPaymentAuthorized(session, event);
+        };
+        session.oncancel = function () {
+            // Donor closed the sheet; return them to the form quietly.
+            thisClass.logger.log("Sheet cancelled by the donor");
+        };
+        session.begin();
+    }
+    onPaymentAuthorized(session, event) {
+        if (engrid_ENGrid.debug)
+            console.log("Apple Pay Token", event.payment.token);
+        // Pass the billing info from Apple Pay back into the EN billing fields -
+        // this won't happen automatically with Vantiv Apple Pay.
+        const billing = event.payment.billingContact || {};
+        const addressLines = billing.addressLines || [];
+        // Country goes first, dispatching change: EN swaps country-dependent
+        // fields (supporter.region is a select for some countries and a text
+        // input for others) when the country changes, so the region field must
+        // already be in its final shape when we fill it below.
+        this.setField("supporter.country", billing.countryCode, true);
+        this.setField("supporter.address1", addressLines[0]);
+        this.setField("supporter.address2", addressLines[1]);
+        this.setField("supporter.city", billing.locality);
+        if (billing.administrativeArea) {
+            this.setRegion(billing.administrativeArea);
+        }
+        this.setField("supporter.postcode", billing.postalCode);
+        this.setField("supporter.phoneNumber", billing.phone);
+        // Apple Pay gifts are one-time on this setup; make sure recurrpay isn't
+        // submitted blank when we bypass the EN submit button.
+        const recurrpay = engrid_ENGrid.getField("transaction.recurrpay");
+        if (recurrpay && !recurrpay.value)
+            recurrpay.value = "N";
+        const applePayToken = document.getElementById("applePayToken");
+        if (applePayToken) {
+            applePayToken.value = JSON.stringify(event.payment.token);
+        }
+        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+        this._form.submitForm();
+    }
+    setField(name, value, dispatchEvents = false) {
+        if (value == null || value === "")
+            return;
+        if (!engrid_ENGrid.getField(name))
+            return;
+        engrid_ENGrid.setFieldValue(name, value, true, dispatchEvents);
+    }
+    // The region field is a select for countries EN has subdivisions for and a
+    // text input for the rest. On a select, the wallet value must match an
+    // option or the write is silently dropped, so match case-insensitively by
+    // option value or label (Apple returns subdivision codes for some
+    // countries and full names for others).
+    setRegion(value) {
+        const field = engrid_ENGrid.getField("supporter.region");
+        if (!field)
+            return;
+        if (field instanceof HTMLSelectElement) {
+            const option = Array.from(field.options).find((o) => o.value.toLowerCase() === value.toLowerCase() ||
+                o.text.toLowerCase() === value.toLowerCase());
+            if (!option) {
+                this.logger.log(`Region "${value}" doesn't match any region select option`);
+                return;
+            }
+            engrid_ENGrid.setFieldValue("supporter.region", option.value);
+            return;
+        }
+        engrid_ENGrid.setFieldValue("supporter.region", value);
     }
     performValidation(url) {
         return new Promise(function (resolve, reject) {
@@ -12178,116 +13325,105 @@ class ApplePay {
             xhr.send();
         });
     }
-    log(name, msg) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/ea-dataservice/rest/applepay/log?name=" + name + "&msg=" + msg);
-        xhr.send();
-    }
-    sendPaymentToken(token) {
-        return new Promise(function (resolve, reject) {
-            resolve(true);
-        });
-    }
-    onPayClicked() {
-        if (!this._form.submit)
-            return;
-        const enFieldPaymentType = document.querySelector("#en__field_transaction_paymenttype");
-        const applePayToken = document.getElementById("applePayToken");
-        const formClass = this._form;
-        // Only work if Payment Type is Apple Pay
-        if (enFieldPaymentType.value == "applepay" && applePayToken.value == "") {
-            try {
-                let donationAmount = this._amount.amount + this._fees.fee;
-                var request = {
-                    supportedNetworks: merchantSupportedNetworks,
-                    merchantCapabilities: merchantCapabilities,
-                    countryCode: merchantCountryCode,
-                    currencyCode: merchantCurrencyCode,
-                    total: {
-                        label: merchantTotalLabel,
-                        amount: donationAmount,
-                    },
-                };
-                var session = new ApplePaySession(1, request);
-                var thisClass = this;
-                session.onvalidatemerchant = function (event) {
-                    thisClass
-                        .performValidation(event.validationURL)
-                        .then(function (merchantSession) {
-                        if (engrid_ENGrid.debug)
-                            console.log("Apple Pay merchantSession", merchantSession);
-                        session.completeMerchantValidation(merchantSession);
-                    });
-                };
-                session.onpaymentauthorized = function (event) {
-                    thisClass
-                        .sendPaymentToken(event.payment.token)
-                        .then(function (success) {
-                        if (engrid_ENGrid.debug)
-                            console.log("Apple Pay Token", event.payment.token);
-                        document.getElementById("applePayToken").value = JSON.stringify(event.payment.token);
-                        formClass.submitForm();
-                    });
-                };
-                session.oncancel = function (event) {
-                    if (engrid_ENGrid.debug)
-                        console.log("Cancelled", event);
-                    alert("You cancelled. Sorry it didn't work out.");
-                    formClass.dispatchError();
-                };
-                session.begin();
-                this._form.submit = false;
-                return false;
-            }
-            catch (e) {
-                alert("Developer mistake: '" + e.message + "'");
-                formClass.dispatchError();
-            }
-        }
-        this._form.submit = true;
-        return true;
-    }
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/a11y.js
+
+
+
 // a11y means accessibility
 // This Component is supposed to be used as a helper for Aria Attributes & Other Accessibility Features
 class A11y {
     constructor() {
-        this.addRequired();
-        this.addLabel();
-        this.addGroupRole();
+        var _a;
+        this.logger = new EngridLogger("A11y", "#FFFFFF", "#811212", "👁️‍🗨️");
+        this.observer = null;
+        this.liveRegionUpdateTimeout = null;
+        this.shouldFocusFirstInvalidField = false;
+        A11y.scanFields();
         this.updateFrequencyLabel();
         const ecardImages = document.querySelectorAll('.en__ecarditems__list img');
         this.setAutoGeneratedAltTags(ecardImages);
-        this.manageErrorListAlertRole();
+        this.observeErrorMessages();
+        (_a = engrid_ENGrid.enForm) === null || _a === void 0 ? void 0 : _a.addEventListener('submit', () => {
+            this.shouldFocusFirstInvalidField = true;
+        });
+        // onSubmit only fires once validation has passed, so disarm the focus
+        // flag: a successful submit must not leave it set, or the next unrelated
+        // async field error (e.g. NeverBounce on blur) would steal focus.
+        EnForm.getInstance().onSubmit.subscribe(() => {
+            this.shouldFocusFirstInvalidField = false;
+        });
     }
-    addGroupRole() {
+    /**
+     * Apply the field-level accessibility tagging (error containers,
+     * aria-required, fallback aria-labels, radio group roles) to every field
+     * within `root`. Defaults to the whole document on initial load, but can be
+     * pointed at a freshly injected fragment (e.g. a Supporter Hub overlay) so
+     * dynamically added forms get the same treatment. All operations are
+     * idempotent, so re-scanning already tagged fields is safe.
+     */
+    static scanFields(root = document) {
+        A11y.addGlobalErrorLiveRegion(root);
+        A11y.addRequired(root);
+        A11y.addLabel(root);
+        A11y.addGroupRole(root);
+    }
+    static addGlobalErrorLiveRegion(root = document) {
+        var _a;
+        const liveRegionId = 'engrid-a11y-error-summary';
+        if (document.getElementById(liveRegionId))
+            return;
+        const form = (_a = engrid_ENGrid.enForm) !== null && _a !== void 0 ? _a : root.querySelector('form.en__component');
+        if (!form)
+            return;
+        const region = document.createElement('div');
+        region.id = liveRegionId;
+        region.className = 'engrid__sr-only';
+        region.setAttribute('aria-live', 'polite');
+        region.setAttribute('aria-atomic', 'true');
+        form.insertBefore(region, form.firstChild);
+        const errorList = document.querySelector('ul.en__errorList');
+        if (errorList === null || errorList === void 0 ? void 0 : errorList.hasAttribute('role')) {
+            errorList.removeAttribute('role');
+        }
+    }
+    static addGroupRole(root = document) {
         // Add role="group" to all EN Radio fields
-        const radioFields = document.querySelectorAll(".en__field--radio");
+        const radioFields = root.querySelectorAll(".en__field--radio");
         radioFields.forEach((field) => {
+            // Skip fields already tagged so re-scans don't regenerate label IDs.
+            if (field.getAttribute("role") === "group")
+                return;
             field.setAttribute("role", "group");
             // Add random ID to the label
             const label = field.querySelector("label");
             if (label) {
                 label.setAttribute("id", `en__field__label--${Math.random().toString(36).slice(2, 7)}`);
+                // EN renders the group's question label as a <label>, but a radio group
+                // has no single control for `for` to point at. When EN leaves it blank
+                // (`for=""`) it's an invalid IDREF, so strip only that empty case
+                const forAttr = label.getAttribute("for");
+                if (forAttr !== null && forAttr.trim() === "") {
+                    label.removeAttribute("for");
+                }
                 field.setAttribute("aria-labelledby", label.id);
             }
         });
     }
-    addRequired() {
-        const mandatoryFields = document.querySelectorAll(".en__mandatory .en__field__input");
+    static addRequired(root = document) {
+        const mandatoryFields = root.querySelectorAll(".en__mandatory .en__field__input");
         mandatoryFields.forEach((field) => {
             field.setAttribute("aria-required", "true");
         });
     }
-    addLabel() {
-        const otherAmount = document.querySelector(".en__field__input--otheramount");
+    static addLabel(root = document) {
+        const otherAmount = root.querySelector(".en__field__input--otheramount");
         if (otherAmount) {
             otherAmount.setAttribute("aria-label", "Enter your custom donation amount");
         }
         // Split selects usually don't have a label, so let's make the first option the label
-        const splitSelects = document.querySelectorAll(".en__field__input--splitselect");
+        const splitSelects = root.querySelectorAll(".en__field__input--splitselect");
         splitSelects.forEach((select) => {
             var _a, _b, _c, _d;
             const firstOption = select.querySelector("option");
@@ -12342,34 +13478,270 @@ class A11y {
                 img.alt = altText;
             }
             catch (error) {
-                console.error(`Error processing image: ${img.src}`, error);
+                this.logger.danger(`Error processing image: ${img.src}`, error);
             }
         });
     }
-    manageErrorListAlertRole() {
-        const errorList = document.querySelector('ul.en__errorList');
-        if (!errorList)
-            return;
-        const hasErrorItems = () => Boolean(errorList.querySelector('li'));
-        const enableAlert = () => {
-            if (!errorList.hasAttribute('role')) {
-                errorList.setAttribute('role', 'alert');
-            }
-        };
-        const disableAlert = () => {
-            if (errorList.hasAttribute('role')) {
-                errorList.removeAttribute('role');
-            }
-        };
-        hasErrorItems() ? enableAlert() : disableAlert();
-        new MutationObserver(records => {
+    /**
+     * Observe #engrid for .en__field__error additions and removals, relocating
+     * each error after its field's input so DOM order matches visual order. Also
+     * toggles aria-invalid / aria-describedby on the corresponding input (or radio
+     * group when the field has role="group") and updates a single, DOM-ordered
+     * global live region. Runs for the lifetime of the page so async validators
+     * (NeverBounce, VGS, server re-renders) are caught without timing assumptions.
+     */
+    observeErrorMessages() {
+        var _a;
+        const root = (_a = document.getElementById('engrid')) !== null && _a !== void 0 ? _a : document.body;
+        this.observer = new MutationObserver(records => {
             for (const record of records) {
-                if (record.type === 'childList') {
-                    hasErrorItems() ? enableAlert() : disableAlert();
-                    break;
-                }
+                if (record.type !== 'childList')
+                    continue;
+                record.addedNodes.forEach(node => {
+                    if (node instanceof HTMLElement && node.classList.contains('en__field__error')) {
+                        this.tagFieldError(node);
+                    }
+                });
+                record.removedNodes.forEach(node => {
+                    if (!(node instanceof HTMLElement))
+                        return;
+                    if (!node.classList.contains('en__field__error'))
+                        return;
+                    if (node.isConnected)
+                        return; // relocated, not removed
+                    // node.parentElement is null after removal; record.target is the
+                    // former parent. Walk up to the enclosing .en__field to be defensive
+                    // against deeper nesting.
+                    const fieldWrapper = record.target.closest('.en__field');
+                    if (fieldWrapper)
+                        this.clearFieldError(fieldWrapper, node.id);
+                });
             }
-        }).observe(errorList, { childList: true });
+        });
+        this.observer.observe(root, { childList: true, subtree: true });
+        // Initial sweep for errors rendered server-side or by scripts that ran
+        // before this observer was attached.
+        document.querySelectorAll('.en__field').forEach(field => {
+            const error = field.querySelector('.en__field__error');
+            if (error)
+                this.tagFieldError(error);
+        });
+    }
+    tagFieldError(error) {
+        var _a;
+        const fieldWrapper = error.closest('.en__field');
+        if (!fieldWrapper)
+            return;
+        const fieldElement = fieldWrapper.querySelector('.en__field__element');
+        if (fieldElement && fieldElement.nextElementSibling !== error) {
+            fieldElement.insertAdjacentElement('afterend', error);
+        }
+        if (!error.id) {
+            error.id = `en__field__error--a11y-${Math.random().toString(36).slice(2, 7)}`;
+        }
+        this.scheduleLiveRegionUpdate();
+        const target = fieldWrapper.getAttribute('role') === 'group'
+            ? fieldWrapper
+            : fieldWrapper.querySelector('.en__field__element input, .en__field__element select, .en__field__element textarea');
+        if (!target)
+            return;
+        target.setAttribute('aria-invalid', 'true');
+        const describedBy = ((_a = target.getAttribute('aria-describedby')) !== null && _a !== void 0 ? _a : '')
+            .split(/\s+/)
+            .filter(Boolean);
+        if (describedBy.indexOf(error.id) === -1) {
+            describedBy.push(error.id);
+        }
+        target.setAttribute('aria-describedby', describedBy.join(' '));
+        // For radio groups, the group itself is the accessible widget; keep the
+        // individual inputs from also being announced as invalid.
+        if (target === fieldWrapper) {
+            fieldWrapper
+                .querySelectorAll('.en__field__element input, .en__field__element select, .en__field__element textarea')
+                .forEach(input => {
+                var _a;
+                input.removeAttribute('aria-invalid');
+                const remaining = ((_a = input.getAttribute('aria-describedby')) !== null && _a !== void 0 ? _a : '')
+                    .split(/\s+/)
+                    .filter(id => id && id !== error.id);
+                if (remaining.length) {
+                    input.setAttribute('aria-describedby', remaining.join(' '));
+                }
+                else {
+                    input.removeAttribute('aria-describedby');
+                }
+            });
+        }
+    }
+    clearFieldError(fieldWrapper, errorId) {
+        var _a;
+        this.scheduleLiveRegionUpdate();
+        const target = fieldWrapper.getAttribute('role') === 'group'
+            ? fieldWrapper
+            : fieldWrapper.querySelector('.en__field__element input, .en__field__element select, .en__field__element textarea');
+        if (!target)
+            return;
+        const hasRemainingError = fieldWrapper.querySelector('.en__field__error') !== null;
+        if (!hasRemainingError) {
+            target.removeAttribute('aria-invalid');
+        }
+        const remaining = ((_a = target.getAttribute('aria-describedby')) !== null && _a !== void 0 ? _a : '')
+            .split(/\s+/)
+            .filter(id => id && id !== errorId);
+        if (remaining.length) {
+            target.setAttribute('aria-describedby', remaining.join(' '));
+        }
+        else {
+            target.removeAttribute('aria-describedby');
+        }
+    }
+    /**
+     * Make everything on the page inert except the supplied overlay element and
+     * its ancestors. This hides background content from assistive technology and
+     * prevents focus from escaping a modal-style overlay.
+     *
+     * @param inert   When true, set `inert` on all siblings of the overlay and of
+     *                each of its ancestors. When false, remove `inert` from every
+     *                element this method previously marked (tracked via the
+     *                `data-engrid-inert` flag).
+     * @param overlay The element that should remain interactive. Required when
+     *                `inert` is true; ignored when `inert` is false.
+     */
+    static inertPage(inert, overlay) {
+        if (inert) {
+            if (!overlay)
+                return;
+            let element = overlay;
+            while (element && element !== document.body) {
+                const parent = element.parentElement;
+                if (parent) {
+                    Array.from(parent.children).forEach((sibling) => {
+                        if (sibling !== element &&
+                            sibling instanceof HTMLElement &&
+                            !sibling.hasAttribute("inert")) {
+                            sibling.setAttribute("inert", "");
+                            sibling.dataset.engridInert = "true";
+                        }
+                    });
+                }
+                element = parent;
+            }
+        }
+        else {
+            document
+                .querySelectorAll("[data-engrid-inert]")
+                .forEach((element) => {
+                element.removeAttribute("inert");
+                delete element.dataset.engridInert;
+            });
+        }
+    }
+    scheduleLiveRegionUpdate() {
+        if (this.liveRegionUpdateTimeout !== null) {
+            window.clearTimeout(this.liveRegionUpdateTimeout);
+        }
+        this.liveRegionUpdateTimeout = window.setTimeout(() => {
+            this.liveRegionUpdateTimeout = null;
+            this.updateGlobalErrorLiveRegion();
+        }, 100);
+    }
+    updateGlobalErrorLiveRegion() {
+        var _a;
+        const region = document.getElementById('engrid-a11y-error-summary');
+        if (!region)
+            return;
+        const errorList = document.querySelector('ul.en__errorList');
+        if (errorList === null || errorList === void 0 ? void 0 : errorList.hasAttribute('role')) {
+            errorList.removeAttribute('role');
+        }
+        const fields = Array.from(document.querySelectorAll('.en__field'));
+        const messages = fields
+            .map(field => {
+            var _a;
+            const error = field.querySelector('.en__field__error');
+            if (!((_a = error === null || error === void 0 ? void 0 : error.textContent) === null || _a === void 0 ? void 0 : _a.trim()))
+                return null;
+            const label = this.getFieldLabel(field);
+            const message = this.formatErrorMessage(label, error.textContent.trim());
+            return message;
+        })
+            .filter((message) => Boolean(message));
+        // Top-of-form server errors (ul.en__errorList) aren't tied to a .en__field,
+        // so fold in any that aren't already covered by the per-field messages,
+        // otherwise they would be silent for screen readers.
+        const normalizeForCompare = (value) => value.replace(/\s+/g, ' ').replace(/[.!?:]+$/, '').trim().toLowerCase();
+        const coveredMessages = messages.map(normalizeForCompare).filter(Boolean);
+        const serverMessages = Array.from((_a = errorList === null || errorList === void 0 ? void 0 : errorList.querySelectorAll('li')) !== null && _a !== void 0 ? _a : [])
+            .map(item => { var _a, _b; return (_b = (_a = item.textContent) === null || _a === void 0 ? void 0 : _a.trim()) !== null && _b !== void 0 ? _b : ''; })
+            .filter(text => {
+            if (!text)
+                return false;
+            const normalized = normalizeForCompare(text);
+            if (!normalized)
+                return false;
+            return !coveredMessages.some(covered => covered === normalized ||
+                covered.includes(normalized) ||
+                normalized.includes(covered));
+        });
+        const allMessages = [...messages, ...serverMessages];
+        region.textContent = '';
+        if (!allMessages.length) {
+            this.shouldFocusFirstInvalidField = false;
+            return;
+        }
+        if (allMessages.length === 1) {
+            region.textContent = allMessages[0];
+        }
+        else {
+            const cleaned = allMessages.map(message => message.replace(/[.!?]+$/, '').trim());
+            region.textContent = engrid_ENGrid.t("a11y.errorSummary", {
+                count: allMessages.length,
+                messages: cleaned.join('. '),
+            });
+        }
+        if (this.shouldFocusFirstInvalidField) {
+            this.shouldFocusFirstInvalidField = false;
+            this.focusFirstInvalidField();
+        }
+    }
+    formatErrorMessage(label, message) {
+        const cleanMessage = message.trim();
+        const cleanLabel = this.normalizeLabel(label);
+        if (!cleanLabel)
+            return cleanMessage;
+        // If the message already mentions the field label, no need to prefix it.
+        const escapedLabel = cleanLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const labelRegex = new RegExp(`\\b${escapedLabel}\\b`, 'i');
+        if (labelRegex.test(cleanMessage))
+            return cleanMessage;
+        return `${cleanLabel}: ${cleanMessage}`;
+    }
+    focusFirstInvalidField() {
+        const fields = Array.from(document.querySelectorAll('.en__field'));
+        for (const field of fields) {
+            if (!field.querySelector('.en__field__error'))
+                continue;
+            const target = field.querySelector('.en__field__element input:not([type="hidden"]), .en__field__element select, .en__field__element textarea');
+            if (target && target.offsetParent !== null && !target.hasAttribute('disabled')) {
+                target.focus();
+                return;
+            }
+        }
+    }
+    getFieldLabel(field) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const label = (_c = (_b = (_a = field.querySelector('.en__field__label:not(.en__field__label--item)')) !== null && _a !== void 0 ? _a : field.querySelector('.en__field__label')) !== null && _b !== void 0 ? _b : field.querySelector('label')) !== null && _c !== void 0 ? _c : field.querySelector('legend');
+        const labelText = (_e = (_d = label === null || label === void 0 ? void 0 : label.textContent) === null || _d === void 0 ? void 0 : _d.trim()) !== null && _e !== void 0 ? _e : '';
+        if (labelText)
+            return this.normalizeLabel(labelText);
+        const input = field.querySelector('input, select, textarea');
+        return (_g = (_f = input === null || input === void 0 ? void 0 : input.getAttribute('aria-label')) === null || _f === void 0 ? void 0 : _f.trim()) !== null && _g !== void 0 ? _g : '';
+    }
+    normalizeLabel(label) {
+        return label
+            .replace(/\s+/g, ' ')
+            .replace(/^[*:\s]+|[*:\s]+$/g, '')
+            .trim();
     }
 }
 
@@ -12482,6 +13854,7 @@ class Ecard {
         this.logger = new EngridLogger("Ecard", "red", "#f5f5f5", "🪪");
         if (!this.shouldRun())
             return;
+        this.altsAndArias();
         this._form.onValidate.subscribe(() => this.checkRecipientFields());
         const schedule = engrid_ENGrid.getUrlParameter("engrid_ecard.schedule");
         const scheduleField = engrid_ENGrid.getField("ecard.schedule");
@@ -12535,6 +13908,200 @@ class Ecard {
         }
         return true;
     }
+    altsAndArias() {
+        document.querySelectorAll(".en__ecarditems__list").forEach((list) => {
+            this.altsAndAriasEcardItemsList(list);
+        });
+        const ecardMessage = document.querySelector(".en__ecardmessage");
+        if (ecardMessage) {
+            this.coupleH2AndInput(ecardMessage, "Add a Message to your eCard");
+        }
+        const ecardRecipients = document.querySelector(".en__ecardrecipients");
+        if (ecardRecipients) {
+            const recipientName = ecardRecipients.querySelector(".en__ecardrecipients__name");
+            if (recipientName) {
+                this.coupleLabelAndInput(recipientName, "Recipient Name");
+            }
+            const recipientEmail = ecardRecipients.querySelector(".en__ecardrecipients__email");
+            if (recipientEmail) {
+                this.coupleLabelAndInput(recipientEmail, "Recipient Email");
+            }
+        }
+        const ecardFutureDelivery = document.querySelector(".en__ecardrecipients__futureDelivery");
+        if (ecardFutureDelivery) {
+            this.coupleH2AndInput(ecardFutureDelivery, "Schedule your eCard for future delivery");
+        }
+        const previewButton = document.querySelector(".en__ecarditems__showprev");
+        if (previewButton) {
+            previewButton.setAttribute("aria-controls", "ecard-preview");
+            previewButton.setAttribute("aria-haspopup", "dialog");
+        }
+        const previewModal = document.querySelector(".en__ecarditems__preview");
+        if (previewModal) {
+            previewModal.setAttribute("role", "dialog");
+            previewModal.setAttribute("aria-modal", "true");
+            previewModal.setAttribute("aria-label", "Ecard Preview Modal");
+            previewModal.setAttribute("id", "ecard-preview");
+            const closeButton = previewModal.querySelector(".en__ecarditems__prevclose");
+            if (closeButton) {
+                closeButton.setAttribute("role", "button");
+                closeButton.setAttribute("aria-label", "Close Preview");
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "Escape" &&
+                        previewModal.classList.contains("preview--show")) {
+                        closeButton.click();
+                    }
+                });
+            }
+            const iframe = previewModal.querySelector("iframe");
+            if (iframe) {
+                iframe.setAttribute("title", "Ecard Preview Frame");
+            }
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === "attributes" &&
+                        mutation.attributeName === "class") {
+                        const target = mutation.target;
+                        if (target.classList.contains("preview--show")) {
+                            A11y.inertPage(true, previewModal);
+                            // Focus the iframe or the first focusable element in the modal
+                            const focusableElements = previewModal.querySelectorAll('iframe, a[href], area[href], button:not([disabled]), object, embed, [tabindex="0"]');
+                            if (focusableElements.length) {
+                                focusableElements[0].focus();
+                            }
+                        }
+                        else {
+                            A11y.inertPage(false);
+                            // Return focus to the preview button
+                            if (previewButton) {
+                                previewButton.focus();
+                            }
+                        }
+                    }
+                });
+            });
+            observer.observe(previewModal, {
+                attributes: true,
+                attributeFilter: ["class"],
+            });
+        }
+    }
+    altsAndAriasEcardItemsList(list) {
+        // if there's a sibling h2, use its text as the aria-label for the list
+        const h2 = list.previousElementSibling;
+        if (h2 && h2.tagName === "H2") {
+            const id = `ecard-list-${Math.random().toString(36).substring(2, 9)}`;
+            h2.setAttribute("id", id);
+            list.setAttribute("aria-labelledby", id);
+        }
+        list.setAttribute("role", "radiogroup");
+        const thumbs = Array.from(list.querySelectorAll(".en__ecarditems__thumb"));
+        let isSelection = false;
+        thumbs.forEach((thumb, index) => {
+            thumb.setAttribute("role", "radio");
+            if (thumb.classList.contains("thumb--active")) {
+                thumb.setAttribute("aria-checked", "true");
+                thumb.setAttribute("tabindex", "0");
+                isSelection = true;
+            }
+            else {
+                thumb.setAttribute("aria-checked", "false");
+                thumb.setAttribute("tabindex", "-1");
+            }
+            const img = thumb.querySelector("img");
+            if (img) {
+                thumb.setAttribute("aria-label", img.alt || "Ecard Thumbnail");
+                img.setAttribute("aria-hidden", "true");
+            }
+            // Keyboard navigation (WAI-ARIA radio group pattern)
+            thumb.addEventListener("keydown", (e) => {
+                let nextIndex = null;
+                switch (e.key) {
+                    case "ArrowRight":
+                    case "ArrowDown":
+                        nextIndex = (index + 1) % thumbs.length;
+                        break;
+                    case "ArrowLeft":
+                    case "ArrowUp":
+                        nextIndex = (index - 1 + thumbs.length) % thumbs.length;
+                        break;
+                    case "Home":
+                        nextIndex = 0;
+                        break;
+                    case "End":
+                        nextIndex = thumbs.length - 1;
+                        break;
+                    case "Enter":
+                    case " ":
+                        e.preventDefault();
+                        thumb.click();
+                        return;
+                    default:
+                        return;
+                }
+                e.preventDefault();
+                // In a radio group, moving focus also selects the option.
+                // click() lets EN's own handler set the value + thumb--active class;
+                // the MutationObserver below then syncs aria-checked + tabindex.
+                thumbs[nextIndex].focus();
+                thumbs[nextIndex].click();
+            });
+        });
+        if (!isSelection && thumbs.length) {
+            thumbs[0].setAttribute("tabindex", "0");
+        }
+        // MutationObserver to watch for "thumb--active" class changes and keep
+        // aria-checked + roving tabindex in sync with the selected thumb
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === "attributes" &&
+                    mutation.attributeName === "class") {
+                    const target = mutation.target;
+                    if (target.classList.contains("thumb--active")) {
+                        target.setAttribute("aria-checked", "true");
+                        // Roving tabindex: only the active thumb is tabbable
+                        target.setAttribute("tabindex", "0");
+                        thumbs.forEach((t) => {
+                            if (t !== target)
+                                t.setAttribute("tabindex", "-1");
+                        });
+                    }
+                    else {
+                        target.setAttribute("aria-checked", "false");
+                    }
+                }
+            });
+        });
+        observer.observe(list, {
+            attributes: true,
+            subtree: true,
+            attributeFilter: ["class"],
+        });
+    }
+    coupleLabelAndInput(parent, labelText) {
+        const label = parent.querySelector("label");
+        const input = parent.querySelector("input, textarea, select");
+        if (label && input) {
+            const id = `ecard-input-${Math.random().toString(36).substring(2, 9)}`;
+            label.setAttribute("id", id);
+            input.setAttribute("aria-labelledby", id);
+        }
+        else if (input) {
+            input.setAttribute("aria-label", labelText);
+        }
+    }
+    coupleH2AndInput(parent, labelText) {
+        const h2 = parent.querySelector("h2");
+        const input = parent.querySelector("textarea, input, select");
+        if (h2 && input) {
+            const id = `ecard-message-${Math.random().toString(36).substring(2, 9)}`;
+            h2.setAttribute("id", id);
+            input.setAttribute("aria-labelledby", id);
+        }
+        else if (input) {
+            input.setAttribute("aria-label", labelText);
+        }
+    }
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/click-to-expand.js
@@ -12546,29 +14113,60 @@ class ClickToExpand {
     constructor() {
         this.clickToExpandWrapper = document.querySelectorAll("div.click-to-expand");
         if (this.clickToExpandWrapper.length) {
-            this.clickToExpandWrapper.forEach((element) => {
-                const content = element.innerHTML;
-                const wrapper_html = '<div class="click-to-expand-cta"></div><div class="click-to-expand-text-wrapper" tabindex="0">' +
-                    content +
-                    "</div>";
-                element.innerHTML = wrapper_html;
-                element.addEventListener("click", (event) => {
-                    if (event) {
-                        if (engrid_ENGrid.debug)
-                            console.log("A click-to-expand div was clicked");
-                        element.classList.add("expanded");
+            this.clickToExpandWrapper.forEach((element, index) => {
+                var _a;
+                const textWrapperId = `click-to-expand-text-${index}`;
+                const ctaId = `click-to-expand-cta-${index}`;
+                // Extract screen reader tip from the live DOM
+                const screenReaderTip = element.querySelector(".click-to-expand-screenreader-tip");
+                let ariaLabel = "Show more";
+                if (screenReaderTip) {
+                    const tipText = (_a = screenReaderTip.textContent) === null || _a === void 0 ? void 0 : _a.trim();
+                    if (tipText) {
+                        ariaLabel = `Show more: ${tipText}`;
                     }
+                    screenReaderTip.remove();
+                }
+                // Capture all original child nodes before restructuring
+                const originalChildren = Array.from(element.childNodes);
+                element.innerHTML = "";
+                // Create the text wrapper
+                const textWrapper = document.createElement("div");
+                textWrapper.className = "click-to-expand-text-wrapper";
+                textWrapper.id = textWrapperId;
+                textWrapper.setAttribute("aria-hidden", "true");
+                textWrapper.setAttribute("aria-label", "Expanded content" + (ariaLabel ? `${ariaLabel.replace('Show more', '')}` : ""));
+                textWrapper.setAttribute("tabindex", "-1");
+                originalChildren.forEach((child) => {
+                    textWrapper.appendChild(child);
                 });
+                const cta = document.createElement("div");
+                cta.className = "click-to-expand-cta";
+                cta.id = ctaId;
+                cta.setAttribute("role", "button");
+                cta.setAttribute("tabindex", "0");
+                cta.setAttribute("aria-expanded", "false");
+                cta.setAttribute("aria-controls", textWrapperId);
+                cta.setAttribute("aria-label", ariaLabel);
+                element.appendChild(textWrapper);
+                element.appendChild(cta);
+                const expand = () => {
+                    if (engrid_ENGrid.debug) {
+                        console.log("A click-to-expand div was expanded");
+                    }
+                    element.classList.add("expanded");
+                    cta.setAttribute("aria-expanded", "true");
+                    cta.setAttribute("aria-hidden", "true");
+                    textWrapper.setAttribute("aria-hidden", "false");
+                    textWrapper.focus(); // Move focus to revealed content for screen reader announcement
+                };
+                element.addEventListener("click", expand);
                 element.addEventListener("keydown", (event) => {
                     if (event.key === "Enter") {
-                        if (engrid_ENGrid.debug)
-                            console.log("A click-to-expand div had the 'Enter' key pressed on it");
-                        element.classList.add("expanded");
+                        expand();
                     }
                     else if (event.key === " ") {
-                        if (engrid_ENGrid.debug)
-                            console.log("A click-to-expand div had the 'Spacebar' key pressed on it");
-                        element.classList.add("expanded");
+                        expand();
                         event.preventDefault(); // Prevents the page from scrolling
                         event.stopPropagation(); // Prevent a console error generated by LastPass https://github.com/KillerCodeMonkey/ngx-quill/issues/351#issuecomment-476017960
                     }
@@ -12635,6 +14233,10 @@ class DataAttributes {
         // Add the Page Type as a Data Attribute on the Body Tag
         if (engrid_ENGrid.checkNested(window, "pageJson", "pageType")) {
             engrid_ENGrid.setBodyData("page-type", window.pageJson.pageType);
+        }
+        // Add the locale as a Data Attribute on the Body Tag
+        if (engrid_ENGrid.checkNested(window, "pageJson", "locale")) {
+            engrid_ENGrid.setBodyData("locale", window.pageJson.locale.toLowerCase());
         }
         // Add the currency code as a Data Attribute on the Body Tag
         engrid_ENGrid.setBodyData("currency-code", engrid_ENGrid.getCurrencyCode());
@@ -12949,6 +14551,11 @@ class iFrame {
         window.parent.postMessage({
             scroll: this.shouldScroll(),
         }, "*");
+        // Iframe Queue: signal Thank-You-page completion to the parent window.
+        // The IframeQueue component (in parent mode) listens for this ping and
+        // matches it by Page ID to advance to the next queued iframe. Fires
+        // exactly once per Thank-You-page load. See iframe-queue.ts.
+        this.sendIframeQueueThankYouPing();
         // On click fire the resize event
         document.addEventListener("click", (e) => {
             this.logger.log("iFrame Event - click");
@@ -12958,6 +14565,35 @@ class iFrame {
         });
         // Watch for errors and send the height
         engrid_ENGrid.watchForError(this.sendIframeHeight.bind(this));
+    }
+    /**
+     * Posts a `engrid-iframe-queue:thank-you` message to the parent window
+     * when the embedded EN page reaches its Thank You page (the last page
+     * in the page sequence). Carries the Page ID of the submitting form so
+     * the IframeQueue parent can match the ping against the queued item it
+     * is waiting on, ignoring pings from unrelated EN iframes that may exist
+     * on the same parent page (e.g. an Embedded Ecard iframe).
+     *
+     * Only fires when:
+     *   - the script is running inside an iframe (already guaranteed by the
+     *     code path that calls onLoaded()), AND
+     *   - the embedded page is a Thank You page (ENGrid.isThankYouPage()).
+     *
+     * Consumed by: IframeQueue (engrid/packages/scripts/src/iframe-queue.ts).
+     */
+    sendIframeQueueThankYouPing() {
+        if (!engrid_ENGrid.isThankYouPage())
+            return;
+        const pageId = engrid_ENGrid.getPageID();
+        const message = {
+            type: "engrid-iframe-queue:thank-you",
+            pageId,
+            pageNumber: engrid_ENGrid.getPageNumber(),
+            pageCount: engrid_ENGrid.getPageCount(),
+            url: window.location.href,
+        };
+        this.logger.log(`iFrame Event - Iframe Queue thank-you ping (pageId=${pageId})`);
+        window.parent.postMessage(message, "*");
     }
     sendIframeHeight() {
         let height = document.body.offsetHeight;
@@ -13088,6 +14724,671 @@ class iFrame {
     }
 }
 
+;// ./node_modules/@4site/engrid-scripts/dist/iframe-queue.js
+/* unused harmony import specifier */ var iframe_queue_EngridLogger;
+/* unused harmony import specifier */ var iframe_queue_ENGrid;
+/* unused harmony import specifier */ var iframe_queue_IframeQueueEvents;
+/* unused harmony import specifier */ var iframe_queue_EnForm;
+/* unused harmony import specifier */ var iframe_queue_IframeQueueOptionsDefaults;
+/**
+ * Iframe Queue — load embedded EN pages sequentially.
+ *
+ * **This component is opt-in.** Like `OptInLadder`, it is exported from
+ * `@4site/engrid-scripts` but is **not** auto-constructed by ENgrid's
+ * core bootstrap (`app.ts`). To use it, instantiate it once in your
+ * theme's bootstrap:
+ *
+ * ```ts
+ * import { IframeQueue } from "@4site/engrid-scripts";
+ * new IframeQueue();
+ * ```
+ *
+ * On client themes that don't use this component, **nothing in this
+ * file runs**: no `message` listener is registered, no singleton is
+ * allocated, no bundle code beyond the unused class definition.
+ *
+ * **Why this exists.** Engaging Networks' platform handles concurrent
+ * iframe submissions inconsistently — when several embedded EN forms
+ * are submitted in parallel (e.g. QCB opt-ins for postal mail, mobile
+ * phone, and double opt-in email), roughly 40% of records are lost.
+ * Loading the iframes sequentially (without `?chain`) resolves the
+ * issue. This component generalises that pattern.
+ *
+ * **What it does.** In _parent_ mode (top-level page) it holds an
+ * ordered queue of {@link IframeQueueItem} configs and processes them
+ * one at a time: create iframe → wait for `load` → post a populate
+ * message with field values → wait for the embedded page to reach a
+ * Thank You page → advance. In _embedded_ mode (running inside an
+ * iframe owned by an IframeQueue parent) it listens for the populate
+ * message, fills the form fields via {@link ENGrid.setFieldValue}, and
+ * submits via {@link EnForm.submitForm} when `autoSubmit` is true.
+ *
+ * **Why not `?chain`?** Engaging Networks' `?chain` URL parameter is
+ * unreliable for sequential iframe submission; the agreed solution is
+ * to pass field data via `postMessage` instead. The queue defensively
+ * strips any `chain` query parameter from queued URLs.
+ *
+ * **Page ID matching.** The Thank-You-page ping (sent by the iFrame
+ * component, see iframe.ts) carries the Page ID of the submitting
+ * form. The queue compares it against the Page ID parsed from the
+ * queued URL so that pings from unrelated EN iframes on the same
+ * parent page (such as an Embedded Ecard iframe) are ignored.
+ *
+ * **Events.** Lifecycle events are dispatched via the
+ * {@link IframeQueueEvents} singleton. External code subscribes there
+ * rather than holding a reference to the queue itself.
+ *
+ * @example Programmatic API
+ *   const queue = IframeQueue.getInstance();
+ *   queue.enqueue({
+ *     url: "https://example.org/page/123/data/1",
+ *     fields: { "supporter.emailAddress": "donor@example.org" },
+ *     autoSubmit: true,
+ *   });
+ *   queue.process().then(() => console.log("done"));
+ *
+ * @example Declarative API (set on the EN page before the bundle loads)
+ *   window.EngridIframeQueue = {
+ *     items: [
+ *       { url: "https://example.org/page/123/data/1",
+ *         fields: { "supporter.emailAddress": "donor@example.org" } },
+ *     ],
+ *     autoStart: true,
+ *   };
+ */
+var iframe_queue_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+/** Wire-format type for the populate message sent parent → iframe. */
+const MSG_POPULATE = "engrid-iframe-queue:populate";
+/** Wire-format type for the Thank-You-page ping sent iframe → parent. */
+const MSG_THANK_YOU = "engrid-iframe-queue:thank-you";
+/** Wire-format type for an error message sent iframe → parent. */
+const MSG_ERROR = "engrid-iframe-queue:error";
+/** Default per-item timeout in milliseconds. */
+const DEFAULT_TIMEOUT_MS = 30000;
+/**
+ * Parameters that are automatically inherited from the parent page
+ * onto each queued iframe URL. These are all ENgrid loader / dev-mode
+ * flags — adding them to the parent is meant to affect "the ENgrid
+ * bundle running on this browser tab," which conceptually includes
+ * the embedded forms loaded by the queue.
+ *
+ * For each key, the value is resolved with the same precedence used by
+ * `loader.ts#getOption`:
+ *   1. The item's own URL — if the consumer hard-coded the param on
+ *      the iframe URL, that wins.
+ *   2. The parent page's URL parameter (`?assets=local`).
+ *   3. `window.EngridLoader[key]` on the parent page — useful when EN
+ *      strips URL params on the Thank You page, so themes set
+ *      `<script>window.EngridLoader = { assets: 'local' };</script>`
+ *      to pin the bundle source.
+ *
+ * Notable use case: any of the three works for forcing local-asset
+ * loading on every queued QCB iframe during testing.
+ */
+const PROPAGATED_PARENT_PARAMS = (/* unused pure expression or super */ null && ([
+    "assets",
+    "engridjs",
+    "engridcss",
+    "repo-name",
+    "repo-owner",
+    "debug",
+    "mode",
+]));
+/** Default visually-hidden style for queue iframes. */
+const DEFAULT_HIDDEN_STYLE = {
+    position: "absolute",
+    width: "1px",
+    height: "1px",
+    left: "-9999px",
+    top: "0",
+    opacity: "0",
+    border: "0",
+};
+class IframeQueue {
+    /**
+     * Returns the shared IframeQueue singleton. The bootstrap in app.ts
+     * instantiates this once via `new IframeQueue()`, but consumers that
+     * need to enqueue items programmatically should always go through
+     * `getInstance()` so they share the same queue state.
+     */
+    static getInstance() {
+        if (!IframeQueue.instance) {
+            IframeQueue.instance = new IframeQueue();
+        }
+        return IframeQueue.instance;
+    }
+    constructor() {
+        this.logger = new iframe_queue_EngridLogger("IframeQueue", "white", "#1f6feb", "🚂");
+        this.events = iframe_queue_IframeQueueEvents.getInstance();
+        this._form = iframe_queue_EnForm.getInstance();
+        this.queue = [];
+        this._isProcessing = false;
+        this._aborted = false;
+        this.inFlightPromise = null;
+        // Singleton guard: if called via `new IframeQueue()` after an
+        // instance already exists (e.g. by app.ts), return the existing
+        // instance so behaviour stays consistent with `getInstance()`.
+        if (IframeQueue.instance) {
+            return IframeQueue.instance;
+        }
+        IframeQueue.instance = this;
+        if (this.inIframe()) {
+            this.setupEmbeddedMode();
+        }
+        else {
+            this.setupParentMode();
+        }
+    }
+    // ---------------------------------------------------------------------------
+    // Public API (parent mode)
+    // ---------------------------------------------------------------------------
+    /** Whether the queue is currently processing. */
+    get isProcessing() {
+        return this._isProcessing;
+    }
+    /** Number of items currently in the queue (not counting the in-flight item). */
+    get size() {
+        return this.queue.length;
+    }
+    /**
+     * Add an item to the back of the queue. Items are processed in
+     * insertion order. Calling `enqueue` while the queue is processing is
+     * supported — the new item joins the chain and will be picked up
+     * after the current item completes.
+     */
+    enqueue(item) {
+        if (!item || typeof item.url !== "string" || !item.url) {
+            this.logger.danger("enqueue() called with invalid item; ignoring");
+            return;
+        }
+        this.queue.push(item);
+        this.logger.log(`enqueue: ${item.url} (queue size = ${this.queue.length})`);
+    }
+    /**
+     * Add many items at once, preserving order. Equivalent to calling
+     * {@link enqueue} repeatedly.
+     */
+    enqueueAll(items) {
+        if (!Array.isArray(items))
+            return;
+        for (const item of items)
+            this.enqueue(item);
+    }
+    /**
+     * Begin processing the queue. Resolves when the queue drains
+     * successfully and rejects on the first error. If already processing,
+     * returns the in-flight promise so callers don't start a second drain.
+     */
+    process() {
+        if (this._isProcessing && this.inFlightPromise) {
+            this.logger.log("process: already processing; returning in-flight promise");
+            return this.inFlightPromise;
+        }
+        if (this.queue.length === 0) {
+            this.logger.log("process: queue empty; nothing to do");
+            return Promise.resolve();
+        }
+        this._aborted = false;
+        this._isProcessing = true;
+        this.inFlightPromise = this.drain()
+            .then(() => {
+            this.events.dispatchChainComplete();
+        })
+            .finally(() => {
+            this._isProcessing = false;
+            this.inFlightPromise = null;
+        });
+        return this.inFlightPromise;
+    }
+    /**
+     * Empty the queue without processing. Stops the in-flight item if
+     * any (the in-flight item rejects with an abort error which is
+     * surfaced via `onChainError`).
+     */
+    clear() {
+        this.logger.log(`clear: dropping ${this.queue.length} queued item(s)`);
+        this.queue = [];
+        this._aborted = true;
+    }
+    // ---------------------------------------------------------------------------
+    // Parent-mode internals
+    // ---------------------------------------------------------------------------
+    /**
+     * In parent mode the constructor checks `window.EngridIframeQueue`
+     * for declarative startup config, enqueues those items, and (if
+     * `autoStart` is true) calls `process()` after DOMContentLoaded.
+     */
+    setupParentMode() {
+        this.logger.log("setupParentMode");
+        const config = this.readWindowConfig();
+        if (!config)
+            return;
+        if (Array.isArray(config.items) && config.items.length > 0) {
+            this.enqueueAll(config.items);
+        }
+        const shouldAutoStart = typeof config.autoStart === "boolean"
+            ? config.autoStart
+            : this.queue.length > 0;
+        if (!shouldAutoStart || this.queue.length === 0)
+            return;
+        const start = () => {
+            this.process().catch((err) => {
+                this.logger.danger(`Auto-started queue rejected: ${err}`);
+            });
+        };
+        if (document.readyState !== "loading") {
+            start();
+        }
+        else {
+            document.addEventListener("DOMContentLoaded", start);
+        }
+    }
+    /**
+     * Reads `window.EngridIframeQueue` and returns merged options, or
+     * null if no valid config is present.
+     */
+    readWindowConfig() {
+        const raw = window
+            .EngridIframeQueue;
+        if (!raw || typeof raw !== "object")
+            return null;
+        return Object.assign(Object.assign({}, iframe_queue_IframeQueueOptionsDefaults), raw);
+    }
+    /** Process queued items strictly one at a time. */
+    drain() {
+        var _a;
+        return iframe_queue_awaiter(this, void 0, void 0, function* () {
+            while (this.queue.length > 0) {
+                if (this._aborted) {
+                    this.logger.log("drain: aborted; stopping");
+                    return;
+                }
+                const item = this.queue.shift();
+                try {
+                    yield this.processItem(item);
+                }
+                catch (err) {
+                    const error = err instanceof Error ? err : new Error(String(err));
+                    this.events.dispatchItemError(item, error);
+                    try {
+                        (_a = item.onError) === null || _a === void 0 ? void 0 : _a.call(item, error);
+                    }
+                    catch (cbErr) {
+                        this.logger.danger(`onError callback threw: ${cbErr}`);
+                    }
+                    this.events.dispatchChainError({
+                        message: error.message,
+                        failedItem: item,
+                        cause: error,
+                    });
+                    // Abort the rest of the chain.
+                    this.queue = [];
+                    throw error;
+                }
+            }
+        });
+    }
+    /**
+     * Process a single item: create the iframe, post populate, wait for
+     * the matching Thank-You ping (or error/timeout). Resolves on success
+     * and rejects on error/timeout.
+     */
+    processItem(item) {
+        return new Promise((resolve, reject) => {
+            var _a, _b;
+            const url = this.prepareIframeUrl(item.url);
+            const expectedPageId = iframe_queue_ENGrid.getPageIdFromUrl(url);
+            if (!expectedPageId) {
+                reject(new Error(`IframeQueue: could not parse Page ID from URL "${item.url}".`));
+                return;
+            }
+            this.events.dispatchItemStart(item);
+            const container = (_a = item.container) !== null && _a !== void 0 ? _a : document.body;
+            const iframe = this.createIframe(url, item.iframeStyle);
+            const timeoutMs = (_b = item.timeout) !== null && _b !== void 0 ? _b : DEFAULT_TIMEOUT_MS;
+            let settled = false;
+            let timeoutId = null;
+            const detachListeners = () => {
+                if (timeoutId !== null) {
+                    window.clearTimeout(timeoutId);
+                    timeoutId = null;
+                }
+                window.removeEventListener("message", onMessage);
+                iframe.removeEventListener("load", onIframeLoad);
+                iframe.removeEventListener("error", onIframeError);
+            };
+            const removeIframe = () => {
+                if (iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                }
+            };
+            const succeed = () => {
+                var _a;
+                if (settled)
+                    return;
+                settled = true;
+                detachListeners();
+                removeIframe();
+                this.events.dispatchItemComplete(item);
+                try {
+                    (_a = item.onComplete) === null || _a === void 0 ? void 0 : _a.call(item);
+                }
+                catch (cbErr) {
+                    this.logger.danger(`onComplete callback threw: ${cbErr}`);
+                }
+                resolve();
+            };
+            const fail = (error) => {
+                if (settled)
+                    return;
+                settled = true;
+                detachListeners();
+                if (this.shouldKeepIframeOnError(item)) {
+                    this.markIframeFailed(iframe, error);
+                    this.logger.danger(`Item failed — iframe kept in DOM for inspection: ${error.message}`);
+                }
+                else {
+                    removeIframe();
+                }
+                reject(error);
+            };
+            const onMessage = (event) => {
+                var _a;
+                // Only accept messages from this specific iframe — origin
+                // string matching is unreliable because EN may serve embedded
+                // pages from different subdomains. `event.source` identity is
+                // what matters here.
+                if (event.source !== iframe.contentWindow)
+                    return;
+                const data = event.data;
+                if (!data || typeof data !== "object" || !data.type)
+                    return;
+                if (data.type === MSG_THANK_YOU) {
+                    if (data.pageId !== expectedPageId) {
+                        this.logger.log(`Ignoring thank-you ping with mismatched pageId ` +
+                            `(expected ${expectedPageId}, got ${data.pageId})`);
+                        return;
+                    }
+                    this.logger.log(`Item complete: ${url} (pageId ${expectedPageId})`);
+                    succeed();
+                }
+                else if (data.type === MSG_ERROR) {
+                    if (data.pageId !== expectedPageId)
+                        return;
+                    fail(new Error(`IframeQueue: embedded page reported error: ${(_a = data.message) !== null && _a !== void 0 ? _a : "unknown error"}`));
+                }
+            };
+            const onIframeLoad = () => {
+                var _a, _b;
+                if (settled)
+                    return;
+                const populate = {
+                    type: MSG_POPULATE,
+                    pageId: expectedPageId,
+                    fields: (_a = item.fields) !== null && _a !== void 0 ? _a : {},
+                    autoSubmit: item.autoSubmit !== false, // default true
+                };
+                this.logger.log(`Posting populate to iframe (pageId=${expectedPageId}, ` +
+                    `fieldCount=${Object.keys(populate.fields).length}, ` +
+                    `autoSubmit=${populate.autoSubmit})`);
+                // Use "*" for the same reason origin matching is skipped on
+                // inbound messages — EN may serve embedded pages from a
+                // different subdomain than the host page.
+                (_b = iframe.contentWindow) === null || _b === void 0 ? void 0 : _b.postMessage(populate, "*");
+            };
+            const onIframeError = () => {
+                fail(new Error(`IframeQueue: iframe failed to load: ${url}`));
+            };
+            window.addEventListener("message", onMessage);
+            iframe.addEventListener("load", onIframeLoad);
+            iframe.addEventListener("error", onIframeError);
+            timeoutId = window.setTimeout(() => {
+                fail(new Error(`IframeQueue: timed out after ${timeoutMs}ms waiting for ` +
+                    `Thank-You-page ping from ${url}`));
+            }, timeoutMs);
+            this.logger.log(`Item start: ${url} (pageId ${expectedPageId}, timeout ${timeoutMs}ms)`);
+            container.appendChild(iframe);
+        });
+    }
+    /**
+     * Normalise the URL for a queued iframe:
+     *  1. Strip any `chain` query parameter defensively — the queue
+     *     replaces `?chain` with sequential processing.
+     *  2. Inherit a small allowlist of loader / dev-mode params (see
+     *     {@link PROPAGATED_PARENT_PARAMS}) when they're not already set
+     *     on the item URL. Each key is resolved with the same precedence
+     *     `loader.ts#getOption` uses: parent URL param first, then
+     *     `window.EngridLoader[key]`.
+     *
+     * Item-specified params always take precedence over inherited ones.
+     * Returns the original string unchanged if URL parsing fails.
+     */
+    prepareIframeUrl(rawUrl) {
+        let url;
+        try {
+            url = new URL(rawUrl, window.location.href);
+        }
+        catch (_a) {
+            return rawUrl;
+        }
+        url.searchParams.delete("chain");
+        const parentUrlParams = this.getParentSearchParams();
+        const parentLoader = this.getParentEngridLoader();
+        const inherited = [];
+        for (const key of PROPAGATED_PARENT_PARAMS) {
+            if (url.searchParams.has(key))
+                continue;
+            let value = null;
+            let source = "";
+            if (parentUrlParams) {
+                const v = parentUrlParams.get(key);
+                if (v !== null) {
+                    value = v;
+                    source = "url";
+                }
+            }
+            if (value === null && parentLoader) {
+                const v = parentLoader[key];
+                if (typeof v === "string" && v !== "") {
+                    value = v;
+                    source = "EngridLoader";
+                }
+            }
+            if (value !== null) {
+                url.searchParams.set(key, value);
+                inherited.push(`${key}=${value} (from parent ${source})`);
+            }
+        }
+        if (inherited.length > 0) {
+            this.logger.log(`Inherited parent params on iframe URL: ${inherited.join(", ")}`);
+        }
+        return url.href;
+    }
+    /** Returns the parent page's URLSearchParams, or null on failure. */
+    getParentSearchParams() {
+        try {
+            return new URL(window.location.href).searchParams;
+        }
+        catch (_a) {
+            return null;
+        }
+    }
+    /**
+     * Returns the parent page's `window.EngridLoader` object if set, or
+     * null. Used by {@link prepareIframeUrl} as a fallback source for
+     * loader/dev-mode param values when EN has stripped URL parameters
+     * from the Thank You page.
+     */
+    getParentEngridLoader() {
+        const w = window;
+        if (!w.EngridLoader || typeof w.EngridLoader !== "object")
+            return null;
+        return w.EngridLoader;
+    }
+    /**
+     * Decide whether to leave a failed iframe in the DOM (for
+     * inspection) instead of removing it. True when the item explicitly
+     * asks for it via `keepIframeOnError`, OR whenever ENgrid debug
+     * mode is on (since debugging is when this is useful and we don't
+     * want to make consumers opt in just to inspect failures).
+     */
+    shouldKeepIframeOnError(item) {
+        if (item.keepIframeOnError)
+            return true;
+        try {
+            return iframe_queue_ENGrid.debug === true;
+        }
+        catch (_a) {
+            return false;
+        }
+    }
+    /**
+     * Reposition and style a failed iframe so it's visible in the
+     * viewport (overriding the visually-hidden default), and tag it
+     * with a class + tooltip so the developer knows why it's there.
+     * Right-click the iframe → Inspect frame to dive in.
+     */
+    markIframeFailed(iframe, error) {
+        Object.assign(iframe.style, {
+            position: "fixed",
+            top: "10px",
+            right: "10px",
+            bottom: "auto",
+            left: "auto",
+            width: "min(600px, 90vw)",
+            height: "min(500px, 80vh)",
+            opacity: "1",
+            zIndex: "99999",
+            border: "3px solid #d33",
+            background: "white",
+            boxShadow: "0 4px 24px rgba(0, 0, 0, 0.25)",
+        });
+        iframe.classList.add("engrid-iframe--queue-failed");
+        iframe.title = `Iframe Queue: failed item — ${error.message}`;
+    }
+    /** Create a hidden iframe element for a queue item. */
+    createIframe(url, styleOverride) {
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute("src", url);
+        iframe.setAttribute("frameborder", "0");
+        iframe.setAttribute("scrolling", "no");
+        iframe.setAttribute("aria-hidden", "true");
+        iframe.setAttribute("title", "ENgrid Iframe Queue");
+        iframe.classList.add("engrid-iframe", "engrid-iframe--queue");
+        const style = Object.assign(Object.assign({}, DEFAULT_HIDDEN_STYLE), (styleOverride !== null && styleOverride !== void 0 ? styleOverride : {}));
+        Object.assign(iframe.style, style);
+        return iframe;
+    }
+    // ---------------------------------------------------------------------------
+    // Embedded-mode internals
+    // ---------------------------------------------------------------------------
+    /**
+     * In embedded mode we register a `message` listener that accepts
+     * populate messages from `window.parent`, fills form fields, and
+     * (optionally) submits. The Thank-You-page ping is sent by the iFrame
+     * component (iframe.ts) — not here — so this method does not need to
+     * concern itself with completion signalling.
+     */
+    setupEmbeddedMode() {
+        this.logger.log("setupEmbeddedMode");
+        window.addEventListener("message", (event) => {
+            if (event.source !== window.parent)
+                return;
+            const data = event.data;
+            if (!data || typeof data !== "object" || data.type !== MSG_POPULATE) {
+                return;
+            }
+            this.handlePopulate(data);
+        });
+    }
+    /** Handle a populate message sent by an IframeQueue parent. */
+    handlePopulate(data) {
+        var _a, _b;
+        const fields = (_a = data.fields) !== null && _a !== void 0 ? _a : {};
+        const autoSubmit = data.autoSubmit !== false;
+        this.logger.log(`Received populate (pageId=${data.pageId}, ` +
+            `fieldCount=${Object.keys(fields).length}, autoSubmit=${autoSubmit})`);
+        try {
+            for (const [name, value] of Object.entries(fields)) {
+                // Pass `dispatchEvents = true` so each field fires
+                // `change` + `blur` after the value is set. Without that,
+                // EN's form-validation state machine doesn't see the new
+                // values and leaves `en__submit--disabled` on the submit
+                // button, causing the auto-click below to no-op.
+                iframe_queue_ENGrid.setFieldValue(name, value, true, true);
+            }
+            if (autoSubmit) {
+                // Defer slightly so any synchronous EN dependency parsing in
+                // setFieldValue settles before the form is submitted.
+                window.setTimeout(() => {
+                    // Belt-and-braces: clear EN's "submit disabled" state in
+                    // case its validators didn't re-evaluate (e.g. async
+                    // validators that hadn't completed when the events fired).
+                    this.forceEnableSubmitButton();
+                    this._form.submitForm();
+                }, 0);
+            }
+        }
+        catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            this.logger.danger(`handlePopulate failed: ${error.message}`);
+            window.parent.postMessage({
+                type: MSG_ERROR,
+                pageId: (_b = data.pageId) !== null && _b !== void 0 ? _b : iframe_queue_ENGrid.getPageID(),
+                message: error.message,
+            }, "*");
+        }
+    }
+    /**
+     * Strip every "disabled" marker from the EN submit button so the
+     * programmatic `submitForm()` click is honoured. Removes:
+     *   - the `disabled` DOM property/attribute on the button,
+     *   - the `en__submit--disabled` BEM modifier (EN's own class),
+     *   - the `en__submit--disabled` modifier on the `.en__submit`
+     *     wrapper (some templates style the wrapper instead),
+     *   - ENgrid's own loader markup if a previous `disableSubmit()`
+     *     call left it in place.
+     *
+     * Used only by embedded-mode populate flow when `autoSubmit` is on.
+     */
+    forceEnableSubmitButton() {
+        const button = document.querySelector("form .en__submit button");
+        if (button) {
+            if (button.disabled)
+                button.disabled = false;
+            button.removeAttribute("disabled");
+            button.classList.remove("en__submit--disabled");
+        }
+        const wrapper = document.querySelector(".en__submit");
+        if (wrapper) {
+            wrapper.classList.remove("en__submit--disabled");
+        }
+    }
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+    /** True when this script is executing inside an iframe. */
+    inIframe() {
+        try {
+            return window.self !== window.top;
+        }
+        catch (_a) {
+            return true;
+        }
+    }
+}
+
 ;// ./node_modules/@4site/engrid-scripts/dist/input-has-value-and-focus.js
 // Component that adds has-value and has-focus classes to form inputs
 
@@ -13155,6 +15456,9 @@ class InputHasValueAndFocus {
 
 class InputPlaceholders {
     constructor() {
+        // NOTE: for selectors listed in selectorToI18nKey below, these English
+        // strings are shadowed by the i18n dictionary — edit
+        // interfaces/i18n-options.ts ("placeholders.*" keys) instead of here.
         this.defaultPlaceholders = {
             "input#en__field_supporter_firstName": "First Name",
             "input#en__field_supporter_lastName": "Last Name",
@@ -13200,10 +15504,30 @@ class InputPlaceholders {
             "input#en__field_supporter_billingRegion": "Billing Region",
             "input#en__field_supporter_billingPostcode": "Billing Postal Code",
         };
+        // Maps the default-placeholder selectors to i18n dictionary keys, so the
+        // built-in strings follow the page language. Selectors the client overrides
+        // via the Placeholders option are never translated.
+        this.selectorToI18nKey = {
+            "input#en__field_supporter_firstName": "placeholders.firstName",
+            "input#en__field_supporter_lastName": "placeholders.lastName",
+            "input#en__field_supporter_emailAddress": "placeholders.emailAddress",
+            "input#en__field_supporter_phoneNumber": "placeholders.phoneNumberOptional",
+            ".en__mandatory input#en__field_supporter_phoneNumber": "placeholders.phoneNumber",
+            ".i-required input#en__field_supporter_phoneNumber": "placeholders.phoneNumber",
+            "input#en__field_supporter_phoneNumber2": "placeholders.phoneNumber2Optional",
+            "input#en__field_supporter_country": "placeholders.country",
+            "input#en__field_supporter_address1": "placeholders.address1",
+            "input#en__field_supporter_address2": "placeholders.address2",
+            "input#en__field_supporter_city": "placeholders.city",
+            "input#en__field_supporter_region": "placeholders.region",
+            "input#en__field_supporter_postcode": "placeholders.postcode",
+        };
+        this.customSelectors = new Set();
         if (this.shouldRun()) {
             // If there's a Placeholders option, merge it with the default placeholders
             const placeholders = engrid_ENGrid.getOption("Placeholders");
             if (placeholders) {
+                this.customSelectors = new Set(Object.keys(placeholders));
                 this.defaultPlaceholders = Object.assign(Object.assign({}, this.defaultPlaceholders), placeholders);
             }
             this.run();
@@ -13215,8 +15539,17 @@ class InputPlaceholders {
     run() {
         Object.keys(this.defaultPlaceholders).forEach((selector) => {
             if (selector in this.defaultPlaceholders)
-                this.addPlaceholder(selector, this.defaultPlaceholders[selector]);
+                this.addPlaceholder(selector, this.resolvePlaceholder(selector));
         });
+    }
+    // Built-in placeholder strings follow the page language; client-provided
+    // Placeholders options always win.
+    resolvePlaceholder(selector) {
+        const key = this.selectorToI18nKey[selector];
+        if (key && !this.customSelectors.has(selector)) {
+            return engrid_ENGrid.t(key);
+        }
+        return this.defaultPlaceholders[selector];
     }
     addPlaceholder(selector, placeholder) {
         const fieldEl = document.querySelector(selector);
@@ -13455,6 +15788,7 @@ class UpsellLightbox {
         this._frequency = DonationFrequency.getInstance();
         this._dataLayer = DataLayer.getInstance();
         this._suggestAmount = 0;
+        this._upsellFrequency = "monthly";
         this.logger = new EngridLogger("UpsellLightbox", "black", "pink", "🪟");
         let options = "EngridUpsell" in window ? window.EngridUpsell : {};
         this.options = Object.assign(Object.assign({}, UpsellOptionsDefaults), options);
@@ -13472,23 +15806,19 @@ class UpsellLightbox {
         this.renderLightbox();
         this._form.onSubmit.subscribe(() => this.open());
     }
+    parseMergeTags(str) {
+        return str
+            .replace(/\{new-amount\}/g, "<span class='upsell_suggestion'></span>")
+            .replace(/\{new-frequency\}/g, "<span class='upsell_suggestion_frequency'></span>")
+            .replace(/\{old-amount\}/g, "<span class='upsell_amount'></span>")
+            .replace(/\{old-frequency\}/g, "<span class='upsell_frequency'></span>");
+    }
     renderLightbox() {
-        const title = this.options.title
-            .replace("{new-amount}", "<span class='upsell_suggestion'></span>")
-            .replace("{old-amount}", "<span class='upsell_amount'></span>")
-            .replace("{old-frequency}", "<span class='upsell_frequency'></span>");
-        const paragraph = this.options.paragraph
-            .replace("{new-amount}", "<span class='upsell_suggestion'></span>")
-            .replace("{old-amount}", "<span class='upsell_amount'></span>")
-            .replace("{old-frequency}", "<span class='upsell_frequency'></span>");
-        const yes = this.options.yesLabel
-            .replace("{new-amount}", "<span class='upsell_suggestion'></span>")
-            .replace("{old-amount}", "<span class='upsell_amount'></span>")
-            .replace("{old-frequency}", "<span class='upsell_frequency'></span>");
-        const no = this.options.noLabel
-            .replace("{new-amount}", "<span class='upsell_suggestion'></span>")
-            .replace("{old-amount}", "<span class='upsell_amount'></span>")
-            .replace("{old-frequency}", "<span class='upsell_frequency'></span>");
+        const title = this.parseMergeTags(this.options.title);
+        const paragraph = this.parseMergeTags(this.options.paragraph);
+        const yes = this.parseMergeTags(this.options.yesLabel);
+        const no = this.parseMergeTags(this.options.noLabel);
+        const other = this.parseMergeTags(this.options.otherLabel);
         const markup = `
             <div class="upsellLightboxContainer" id="goMonthly">
               <!-- ideal image size is 480x650 pixels -->
@@ -13503,7 +15833,7 @@ class UpsellLightbox {
                 <div class="upsellOtherAmount">
                   <div class="upsellOtherAmountLabel">
                     <p>
-                      ${this.options.otherLabel}
+                      ${other}
                     </p>
                   </div>
                   <div class="upsellOtherAmountInput">
@@ -13586,7 +15916,7 @@ class UpsellLightbox {
         var _a, _b;
         const value = parseFloat((_b = (_a = this.overlay.querySelector("#secondOtherField")) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : "");
         const live_upsell_amount = document.querySelectorAll("#upsellYesButton .upsell_suggestion");
-        const upsellAmount = this.getUpsellAmount();
+        const { amount: upsellAmount } = this.resolveUpsell();
         if (!isNaN(value) && value > 0) {
             this.checkOtherAmount(value);
         }
@@ -13598,59 +15928,87 @@ class UpsellLightbox {
     liveAmounts() {
         const live_upsell_amount = document.querySelectorAll(".upsell_suggestion");
         const live_amount = document.querySelectorAll(".upsell_amount");
-        const upsellAmount = this.getUpsellAmount();
+        const { amount: upsellAmount } = this.resolveUpsell();
         const suggestedAmount = upsellAmount + this._fees.calculateFees(upsellAmount);
         live_upsell_amount.forEach((elem) => (elem.innerHTML = this.getAmountTxt(suggestedAmount)));
         live_amount.forEach((elem) => (elem.innerHTML = this.getAmountTxt(this._amount.amount + this._fees.fee)));
     }
     liveFrequency() {
         const live_upsell_frequency = document.querySelectorAll(".upsell_frequency");
+        const live_upsell_suggestion_frequency = document.querySelectorAll(".upsell_suggestion_frequency");
         live_upsell_frequency.forEach((elem) => (elem.innerHTML = this.getFrequencyTxt()));
+        live_upsell_suggestion_frequency.forEach((elem) => (elem.innerHTML = this.getFrequencyTxt(this._upsellFrequency)));
     }
-    // Return the Suggested Upsell Amount
-    getUpsellAmount() {
-        var _a, _b;
+    // Resolve the upsell amount and target frequency in a single pass and keep
+    // the cached _suggestAmount / _upsellFrequency in sync with the current
+    // donation amount and any value entered in the "other amount" field.
+    resolveUpsell() {
+        var _a, _b, _c, _d, _e;
         const amount = this._amount.amount;
         const otherAmount = parseFloat((_b = (_a = this.overlay.querySelector("#secondOtherField")) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : "");
+        const defaultFrequency = (_c = this.options.upsellToFrequency) !== null && _c !== void 0 ? _c : "monthly";
+        let upsellAmount;
+        let upsellFrequency;
         if (otherAmount > 0) {
-            return otherAmount > this.options.minAmount
-                ? otherAmount
-                : this.options.minAmount;
+            // An "other" amount overrides the amount but keeps the frequency that
+            // was already shown when the lightbox opened
+            upsellAmount =
+                otherAmount > this.options.minAmount
+                    ? otherAmount
+                    : this.options.minAmount;
+            upsellFrequency = this._upsellFrequency;
         }
-        let upsellAmount = 0;
-        for (let i = 0; i < this.options.amountRange.length; i++) {
-            let val = this.options.amountRange[i];
-            if (upsellAmount == 0 && amount <= val.max) {
-                upsellAmount = val.suggestion;
-                if (upsellAmount === 0)
-                    return 0;
-                if (typeof upsellAmount !== "number") {
-                    const suggestionMath = upsellAmount.replace("amount", amount.toFixed(2));
-                    upsellAmount = parseFloat(Function('"use strict";return (' + suggestionMath + ")")());
+        else {
+            upsellAmount = 0;
+            upsellFrequency = defaultFrequency;
+            for (let i = 0; i < this.options.amountRange.length; i++) {
+                const val = this.options.amountRange[i];
+                if (upsellAmount == 0 && amount <= val.max) {
+                    if (val.suggestion === 0) {
+                        upsellFrequency = (_d = val.frequency) !== null && _d !== void 0 ? _d : defaultFrequency;
+                        this._suggestAmount = 0;
+                        this._upsellFrequency = upsellFrequency;
+                        return { amount: 0, frequency: upsellFrequency };
+                    }
+                    else if (typeof val.suggestion === "number") {
+                        upsellAmount = val.suggestion;
+                    }
+                    else {
+                        const suggestionMath = val.suggestion.replace("amount", amount.toFixed(2));
+                        upsellAmount = parseFloat(Function('"use strict";return (' + suggestionMath + ")")());
+                    }
+                    upsellFrequency = (_e = val.frequency) !== null && _e !== void 0 ? _e : defaultFrequency;
+                    break;
                 }
-                break;
             }
+            upsellAmount =
+                upsellAmount > this.options.minAmount
+                    ? upsellAmount
+                    : this.options.minAmount;
         }
-        return upsellAmount > this.options.minAmount
-            ? upsellAmount
-            : this.options.minAmount;
+        this._suggestAmount = upsellAmount;
+        this._upsellFrequency = upsellFrequency;
+        return { amount: upsellAmount, frequency: upsellFrequency };
     }
     shouldOpen() {
-        const upsellAmount = this.getUpsellAmount();
+        const { amount: upsellAmount, frequency: upsellFrequency } = this.resolveUpsell();
         const paymenttype = engrid_ENGrid.getFieldValue("transaction.paymenttype") || "";
-        this._suggestAmount = upsellAmount;
-        // If frequency is not onetime or
-        // the modal is already opened or
-        // there's no suggestion for this donation amount,
+        // If frequency is not allowed, or
+        // the modal is already opened, or
+        // there's no suggestion for this donation amount, or
+        // the target upsell frequency is not available on the form,
         // we should not open
         if (this.freqAllowed() &&
             !this.shouldSkip() &&
             !this.options.disablePaymentMethods.includes(paymenttype.toLowerCase()) &&
             !this.overlay.classList.contains("is-submitting") &&
-            upsellAmount > 0) {
+            upsellAmount > 0 &&
+            this._frequency.frequencies.includes(upsellFrequency) &&
+            this._frequency.frequency !== upsellFrequency) {
             this.logger.log("Upsell Frequency " + this._frequency.frequency);
             this.logger.log("Upsell Amount " + this._amount.amount);
             this.logger.log("Upsell Suggested Amount " + upsellAmount);
+            this.logger.log("Upsell Suggested Frequency " + upsellFrequency);
             return true;
         }
         return false;
@@ -13661,6 +16019,8 @@ class UpsellLightbox {
         const allowed = [];
         if (this.options.oneTime)
             allowed.push("onetime");
+        if (this.options.monthly)
+            allowed.push("monthly");
         if (this.options.annual)
             allowed.push("annual");
         return allowed.includes(freq);
@@ -13720,27 +16080,30 @@ class UpsellLightbox {
             ((_a = document.querySelector("#upsellYesButton")) === null || _a === void 0 ? void 0 : _a.contains(e.target))) {
             this.logger.success("Upsold");
             this.setOriginalAmount(this._amount.amount.toString());
-            const upsoldAmount = this.getUpsellAmount();
+            const { amount: upsoldAmount, frequency: upsellFrequency } = this.resolveUpsell();
             const originalAmount = this._amount.amount;
-            this._frequency.setFrequency("monthly");
+            const originalFrequency = this._frequency.frequency;
+            this._frequency.setFrequency(upsellFrequency);
             this._amount.setAmount(upsoldAmount);
             this._dataLayer.addEndOfGiftProcessEvent("ENGRID_UPSELL", {
                 eventValue: true,
+                originalFrequency: originalFrequency,
                 originalAmount: originalAmount,
                 upsoldAmount: upsoldAmount,
-                frequency: "monthly",
+                frequency: upsellFrequency,
             });
             this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL", true);
             this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL_ORIGINAL_AMOUNT", originalAmount);
-            this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL_DONATION_FREQUENCY", "MONTHLY");
-            this.renderConversionField("upsellSuccess", "onetime", originalAmount, "monthly", this._suggestAmount, "monthly", upsoldAmount);
+            this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL_ORIGINAL_FREQUENCY", this.getFrequencyTxt(originalFrequency).toUpperCase());
+            this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL_DONATION_FREQUENCY", this.getFrequencyTxt(upsellFrequency).toUpperCase());
+            this.renderConversionField("upsellSuccess", originalFrequency, originalAmount, upsellFrequency, this._suggestAmount, upsellFrequency, upsoldAmount);
         }
         else {
             this.setOriginalAmount("");
             window.sessionStorage.removeItem("original");
             this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL", false);
-            this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL_DONATION_FREQUENCY", "ONE-TIME");
-            this.renderConversionField("upsellFail", this._frequency.frequency, this._amount.amount, "monthly", this._suggestAmount, this._frequency.frequency, this._amount.amount);
+            this._dataLayer.addEndOfGiftProcessVariable("ENGRID_UPSELL_DONATION_FREQUENCY", this.getFrequencyTxt(this._frequency.frequency).toUpperCase());
+            this.renderConversionField("upsellFail", this._frequency.frequency, this._amount.amount, this._upsellFrequency, this._suggestAmount, this._frequency.frequency, this._amount.amount);
         }
         this._form.submitForm();
     }
@@ -13750,7 +16113,7 @@ class UpsellLightbox {
         this.overlay.classList.add("is-hidden");
         engrid_ENGrid.setBodyData("has-lightbox", false);
         if (this.options.submitOnClose) {
-            this.renderConversionField("upsellFail", this._frequency.frequency, this._amount.amount, "monthly", this._suggestAmount, this._frequency.frequency, this._amount.amount);
+            this.renderConversionField("upsellFail", this._frequency.frequency, this._amount.amount, this._upsellFrequency, this._suggestAmount, this._frequency.frequency, this._amount.amount);
             this._form.submitForm();
         }
         else {
@@ -13766,14 +16129,16 @@ class UpsellLightbox {
         const amountTxt = engrid_ENGrid.formatNumber(amount, dec_places, dec_separator, thousands_separator);
         return amount > 0 ? symbol + amountTxt : "";
     }
-    getFrequencyTxt() {
+    getFrequencyTxt(frequency = this._frequency.frequency) {
         const freqTxt = {
             onetime: "one-time",
             monthly: "monthly",
+            quarterly: "quarterly",
+            semi_annual: "semi-annual",
             annual: "annual",
         };
-        const frequency = this._frequency.frequency;
-        return frequency in freqTxt ? freqTxt[frequency] : frequency;
+        const freq = frequency;
+        return freq in freqTxt ? freqTxt[freq] : frequency;
     }
     checkOtherAmount(value) {
         const otherInput = document.querySelector(".upsellOtherAmountInput");
@@ -13789,7 +16154,7 @@ class UpsellLightbox {
     renderConversionField(event, // The event that triggered the conversion
     freq, // The frequency of the donation (onetime, monthly, annual)
     amt, // The original amount of the donation (before the upsell)
-    sugFreq, // The suggested frequency of the upsell (monthly)
+    sugFreq, // The suggested frequency of the upsell
     sugAmt, // The suggested amount of the upsell
     subFreq, // The submitted frequency of the upsell (onetime, monthly, annual)
     subAmt // The submitted amount of the upsell
@@ -14185,7 +16550,7 @@ class ShowHideRadioCheckboxes {
                 state.push({
                     page: engrid_ENGrid.getPageID(),
                     class: this.classes,
-                    value: element.value,
+                    value: element.value.replace(/\W/g, ""),
                 });
                 this.logger.log("storing radio state", state[state.length - 1]);
             }
@@ -14200,7 +16565,7 @@ class ShowHideRadioCheckboxes {
                 state.push({
                     page: engrid_ENGrid.getPageID(),
                     class: this.classes,
-                    value: (_b = (_a = [...this.elements].find((el) => el.checked)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : "N", // First checked value or "N" if none
+                    value: (_b = (_a = [...this.elements].find((el) => el.checked)) === null || _a === void 0 ? void 0 : _a.value.replace(/\W/g, "")) !== null && _b !== void 0 ? _b : "N", // First checked value or "N" if none
                 });
                 this.logger.log("storing checkbox state", state[state.length - 1]);
             }
@@ -14321,7 +16686,9 @@ class TranslateFields {
         };
         this.countriesSelect = document.querySelectorAll('select[name="supporter.country"], select[name="transaction.shipcountry"], select[name="supporter.billingCountry"], select[name="transaction.infcountry"]');
         let options = "EngridTranslate" in window ? window.EngridTranslate : {};
-        this.options = TranslateOptionsDefaults;
+        // Shallow clone: the EngridTranslate merge below concatenates arrays per
+        // key and must never mutate the shared TranslateOptionsDefaults.
+        this.options = Object.assign({}, TranslateOptionsDefaults);
         // Don't run this for US-only forms.
         if (document.querySelector(".en__component--formblock.us-only-form .en__field--country")) {
             return;
@@ -14359,11 +16726,18 @@ class TranslateFields {
                 }
             }
         }
+        else {
+            // No country field on the page: still translate to the page language
+            this.applyLanguageLayer();
+        }
     }
     translateFields(countryName = "supporter.country") {
         this.resetTranslatedFields();
         const countryValue = engrid_ENGrid.getFieldValue(countryName);
-        // Translate the State Field
+        // Apply the page language as the base translation layer
+        this.applyLanguageLayer();
+        // Translate the State Field (runs last so country-specific state labels
+        // like "Provincia" or "Estado" win over the language layer)
         this.setStateField(countryValue, this.countryToStateFields[countryName]);
         if (countryName === "supporter.country") {
             if (countryValue in this.options) {
@@ -14375,6 +16749,14 @@ class TranslateFields {
             // Translate the "To:"
             const recipient_block = document.querySelectorAll(".recipient-block");
             if (!!recipient_block.length) {
+                // Capture the original page-builder text once per cycle so
+                // resetTranslatedFields() can restore it — a country change never
+                // leaves a stale translation behind.
+                recipient_block.forEach((elem) => {
+                    const el = elem;
+                    if (!el.dataset.original)
+                        el.dataset.original = el.innerHTML;
+                });
                 switch (countryValue) {
                     case "FR":
                     case "FRA":
@@ -14391,8 +16773,27 @@ class TranslateFields {
                     case "Netherlands":
                         recipient_block.forEach((elem) => (elem.innerHTML = "Aan:"));
                         break;
+                    default:
+                        // No country-specific rule: use the page language string when the
+                        // language dictionary defines one (e.g. "es" -> "Para:"). English
+                        // pages keep the page-builder text, already restored above.
+                        if (engrid_ENGrid.getPageLanguage() !== "en" &&
+                            engrid_ENGrid.hasI18nKey("translateFields.recipientTo")) {
+                            recipient_block.forEach((elem) => (elem.innerHTML = engrid_ENGrid.t("translateFields.recipientTo")));
+                        }
+                        break;
                 }
             }
+        }
+    }
+    // Apply the translation layer for the current page language (e.g. "es").
+    // This is the base layer; country-specific translations override it per field.
+    applyLanguageLayer() {
+        const language = engrid_ENGrid.getPageLanguage();
+        if (language in this.options) {
+            this.options[language].forEach((field) => {
+                this.translateField(field.field, field.translation);
+            });
         }
     }
     translateField(name, translation) {
@@ -14407,7 +16808,20 @@ class TranslateFields {
                     ? simplecountriesSelect.cloneNode(true)
                     : null;
                 if (field instanceof HTMLInputElement && field.placeholder != "") {
-                    if (!fieldLabel || fieldLabel.innerHTML == field.placeholder) {
+                    // Translate the placeholder when it mirrors the label (the common
+                    // case). Compare normalized visible text so template whitespace and
+                    // required-marker markup don't break the match. Order matters:
+                    // trim before stripping the marker, or labels like "Name *\n"
+                    // keep the asterisk.
+                    const labelText = ((fieldLabel === null || fieldLabel === void 0 ? void 0 : fieldLabel.textContent) || "")
+                        .replace(/\s+/g, " ")
+                        .trim()
+                        .replace(/\s*\*$/, "");
+                    const placeholderText = field.placeholder
+                        .replace(/\s+/g, " ")
+                        .trim()
+                        .replace(/\s*\*$/, "");
+                    if (!fieldLabel || labelText === placeholderText) {
                         field.dataset.original = field.placeholder;
                         field.placeholder = translation;
                     }
@@ -14462,7 +16876,7 @@ class TranslateFields {
             case "GB":
             case "GBR":
             case "United Kingdom":
-                this.setStateValues(state, "State/Region", null);
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.stateRegion"), null);
                 break;
             case "DE":
             case "DEU":
@@ -14476,8 +16890,8 @@ class TranslateFields {
                 break;
             case "AU":
             case "AUS":
-                this.setStateValues(state, "Province / State", [
-                    { label: "Select", value: "" },
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.stateGeneric"), [
+                    { label: engrid_ENGrid.t("translateFields.select"), value: "" },
                     { label: "New South Wales", value: "NSW" },
                     { label: "Victoria", value: "VIC" },
                     { label: "Queensland", value: "QLD" },
@@ -14489,8 +16903,8 @@ class TranslateFields {
                 ]);
                 break;
             case "Australia":
-                this.setStateValues(state, "Province / State", [
-                    { label: "Select", value: "" },
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.stateGeneric"), [
+                    { label: engrid_ENGrid.t("translateFields.select"), value: "" },
                     { label: "New South Wales", value: "New South Wales" },
                     { label: "Victoria", value: "Victoria" },
                     { label: "Queensland", value: "Queensland" },
@@ -14506,8 +16920,8 @@ class TranslateFields {
                 break;
             case "US":
             case "USA":
-                this.setStateValues(state, "State", [
-                    { label: "Select State", value: "" },
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.state"), [
+                    { label: engrid_ENGrid.t("translateFields.selectState"), value: "" },
                     { label: "Alabama", value: "AL" },
                     { label: "Alaska", value: "AK" },
                     { label: "Arizona", value: "AZ" },
@@ -14584,8 +16998,8 @@ class TranslateFields {
                 ]);
                 break;
             case "United States":
-                this.setStateValues(state, "State", [
-                    { label: "Select State", value: "" },
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.state"), [
+                    { label: engrid_ENGrid.t("translateFields.selectState"), value: "" },
                     { label: "Alabama", value: "Alabama" },
                     { label: "Alaska", value: "Alaska" },
                     { label: "Arizona", value: "Arizona" },
@@ -14672,8 +17086,8 @@ class TranslateFields {
                 break;
             case "CA":
             case "CAN":
-                this.setStateValues(state, "Province / Territory", [
-                    { label: "Select", value: "" },
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.provinceTerritory"), [
+                    { label: engrid_ENGrid.t("translateFields.select"), value: "" },
                     { label: "Alberta", value: "AB" },
                     { label: "British Columbia", value: "BC" },
                     { label: "Manitoba", value: "MB" },
@@ -14690,8 +17104,8 @@ class TranslateFields {
                 ]);
                 break;
             case "Canada":
-                this.setStateValues(state, "Province / Territory", [
-                    { label: "Select", value: "" },
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.provinceTerritory"), [
+                    { label: engrid_ENGrid.t("translateFields.select"), value: "" },
                     { label: "Alberta", value: "Alberta" },
                     { label: "British Columbia", value: "British Columbia" },
                     { label: "Manitoba", value: "Manitoba" },
@@ -14784,7 +17198,7 @@ class TranslateFields {
                 ]);
                 break;
             default:
-                this.setStateValues(state, "Province / State", null);
+                this.setStateValues(state, engrid_ENGrid.t("translateFields.stateGeneric"), null);
                 break;
         }
     }
@@ -15113,12 +17527,20 @@ class setRecurrFreq {
 ;// ./node_modules/@4site/engrid-scripts/dist/page-background.js
 
 class PageBackground {
-    constructor() {
+    constructor(useBodyBannerImage = false) {
         // @TODO: Change page-backgroundImage to page-background
         this.pageBackground = document.querySelector(".page-backgroundImage");
+        this.bodyBanner = document.querySelector(".body-banner");
+        this.bodyBannerImage = null;
         this.mutationObserver = null;
         this.logger = new EngridLogger("PageBackground", "lightblue", "darkblue", "🖼️");
-        if (!this.pageBackground) {
+        if (typeof window.UseBodyBannerImageAsBackground !== "undefined") {
+            useBodyBannerImage = !!window.UseBodyBannerImageAsBackground;
+        }
+        if (useBodyBannerImage) {
+            this.bodyBannerImage = this.findBodyBannerImage();
+        }
+        if (!this.pageBackground && !this.bodyBannerImage) {
             this.logger.log("A background image set in the page was not found, any default image set in the theme on --engrid__page-backgroundImage_url will be used");
             return;
         }
@@ -15127,28 +17549,66 @@ class PageBackground {
         this.processAttributionPositioning();
         this.setupMutationObserver();
     }
+    findBodyBannerImage() {
+        var _a;
+        if (!this.bodyBanner) {
+            return null;
+        }
+        return ((_a = this.bodyBanner.querySelector("img.preferred-image")) !== null && _a !== void 0 ? _a : this.bodyBanner.querySelector("img"));
+    }
     /**
      * Initialize background image by finding and setting CSS custom property
      */
     initializeBackgroundImage() {
-        if (!this.pageBackground)
-            return;
-        const pageBackgroundImg = this.pageBackground.querySelector("img");
-        if (!pageBackgroundImg) {
-            this.logger.log("A background image set in the page was not found, any default image set in the theme on --engrid__page-backgroundImage_url will be used");
+        const backgroundImg = this.getBackgroundImage();
+        if (!backgroundImg) {
+            this.logger.log("No image found in page background and no body banner image found (or pageBackground is already occupied), any default image set in the theme on --engrid__page-backgroundImage_url will be used");
             return;
         }
-        const dataSrc = pageBackgroundImg.getAttribute("data-src");
-        const src = pageBackgroundImg.src;
+        const imageSource = this.getImageSource(backgroundImg);
+        if (!imageSource) {
+            this.logger.log("A background image set in the page was found but without a data-src or src value, no action taken", backgroundImg);
+            return;
+        }
+        this.setBackgroundImageUrl(imageSource.url, imageSource.sourceType);
+    }
+    getBackgroundImage() {
+        if (!this.pageBackground) {
+            return null;
+        }
+        const existingImage = this.pageBackground.querySelector("img");
+        if (existingImage) {
+            return existingImage;
+        }
+        if (this.bodyBannerImage && this.pageBackground.children.length === 0) {
+            return this.useBodyBannerAsBackground();
+        }
+        return null;
+    }
+    useBodyBannerAsBackground() {
+        var _a;
+        if (!this.pageBackground || !this.bodyBanner) {
+            return null;
+        }
+        this.logger.log("No image found in page background, using body banner image as background image instead");
+        const clonedBodyBanner = this.bodyBanner.cloneNode(true);
+        while (clonedBodyBanner.firstChild) {
+            this.pageBackground.appendChild(clonedBodyBanner.firstChild);
+        }
+        document.body.removeAttribute("data-engrid-no-page-backgroundImage");
+        engrid_ENGrid.setBodyData("use-body-banner-background", "");
+        return ((_a = this.pageBackground.querySelector("img.preferred-image")) !== null && _a !== void 0 ? _a : this.pageBackground.querySelector("img"));
+    }
+    getImageSource(backgroundImg) {
+        const dataSrc = backgroundImg.getAttribute("data-src");
         if (dataSrc) {
-            this.setBackgroundImageUrl(dataSrc, "data-src");
+            return { sourceType: "data-src", url: dataSrc };
         }
-        else if (src) {
-            this.setBackgroundImageUrl(src, "src");
+        const src = backgroundImg.src;
+        if (src) {
+            return { sourceType: "src", url: src };
         }
-        else {
-            this.logger.log("A background image set in the page was found but without a data-src or src value, no action taken", pageBackgroundImg);
-        }
+        return null;
     }
     /**
      * Set the background image URL as a CSS custom property
@@ -15351,6 +17811,567 @@ class PageBackground {
             return false;
         }
         return (!this.hasVideoBackground() && !!this.pageBackground.querySelector("img"));
+    }
+}
+
+;// ./node_modules/@4site/engrid-scripts/dist/page-background-rotation.js
+/* unused harmony import specifier */ var page_background_rotation_ENGrid;
+/* unused harmony import specifier */ var page_background_rotation_EngridLogger;
+// PageBackgroundRotation handles the rotation of background images within a page-backgroundImage block
+// By default, this feature is not enabled, and must be enabled by importing and initializing it in the client theme's onLoad block
+// Within the page-backgroundImage block, if there is a parent div with a class of 'background-rotation', then the background image will rotate every 5 seconds
+// The image rotates on a cross-fade transition, and the next image is randomly selected from the list of child elements with a class of 'background-image-item' within the 'background-rotation' div
+// The random selection of the next image is done in a way that ensures that the same image is not displayed twice in a row, and that all images are displayed before any image is repeated
+// On mobile, the background image will not rotate, and a random image in the list will be displayed as a static background image
+// The background image will also not rotate if the user has set a preference for reduced motion in their system settings, unless controls are present which will allow the user to "start" the process manually.
+// Figattributes/figcaptions, if included on the image, will also need to be updated to reflect the new image being displayed
+// Each image item can include a data-theme (default 'dark') attribute, which allow for client themes to style particular elements based on the background color.
+// Options block:
+/**
+ * Set via the default options, overridden by the options passed to the constructor, and overridden by a window-level variable called 'EngridPageBackgroundRotationOptions' if it exists. The options are as follows:
+ * enabled: Whether the background rotation is enabled (default: true)
+ * interval: The interval in milliseconds between image rotations (default: 5000)
+ * initialDelay: The delay in milliseconds before the first rotation, giving the first image time to load (default: 10000)
+ * transitionDuration: The duration of the cross-fade transition in milliseconds (default: 500)
+ * transitionClass: The CSS class to apply to the background image container during the transition (default: 'background-rotation-transition')
+ * eachImageSelector: The CSS selector for each individual background image (default: '.page-background-image-item')
+ * backgroundImageSelector: The CSS selector for the background image container (default: '.page-background-rotation')
+ * slideOrder: The order in which the images are displayed (default: 'random' [random-bag], other options: 'sequential', 'true-random')
+ * randomStart: Whether to start the rotation at a random image (default: true)
+ * reducedMotion: Whether to respect the user's preference for reduced motion (default: true)
+ * rotateOnMobile: Whether to rotate the background image on mobile devices (default: false)
+ * mobileBreakpoint: Where to consider the layout as being "mobile" (default: ‘(max-width: 499px)’)
+ * controls: Whether to add back, pause, and forward buttons for the rotation (default: false)
+ */
+
+
+class PageBackgroundRotation {
+    constructor(options = {}) {
+        var _a;
+        this.logger = new page_background_rotation_EngridLogger("PageBackgroundRotation", "white", "rebeccapurple", "🌄");
+        this.defaultOptions = {
+            enabled: true,
+            interval: 5000,
+            initialDelay: 10000,
+            transitionDuration: 500,
+            transitionClass: "background-rotation-transition",
+            eachImageSelector: ".page-background-image-item",
+            backgroundImageSelector: ".page-background-rotation",
+            slideOrder: "random",
+            randomStart: true,
+            reducedMotion: true,
+            rotateOnMobile: false,
+            mobileBreakpoint: "(max-width: 499px)",
+            controls: false,
+        };
+        this.container = null;
+        this.items = [];
+        this.layers = [];
+        this.imageUrls = [];
+        this.imagesWarmed = false;
+        this.warmingScheduled = false;
+        this.firstImagePreloaded = false;
+        this.currentIndex = -1;
+        this.randomBag = [];
+        this.history = [];
+        this.isPaused = false;
+        this.pausedForReducedMotion = false;
+        this.interactionPauses = new Set();
+        this.previousButton = null;
+        this.pauseButton = null;
+        this.liveRegion = null;
+        this.rotationTimer = null;
+        this.initialDelayTimer = null;
+        this.initialDelayElapsed = false;
+        this.transitionTimer = null;
+        this.reducedMotionMediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        this.options = Object.assign(Object.assign(Object.assign({}, this.defaultOptions), options), ((_a = window.EngridPageBackgroundRotationOptions) !== null && _a !== void 0 ? _a : {}));
+        this.mobileMediaQuery = window.matchMedia(this.options.mobileBreakpoint);
+        if (!this.shouldRun())
+            return;
+        this.container = document.querySelector(`.page-backgroundImage ${this.options.backgroundImageSelector}, .body-banner ${this.options.backgroundImageSelector}`);
+        this.items = Array.from(this.container.querySelectorAll(this.options.eachImageSelector));
+        this.container.style.setProperty("--background-rotation-transition-duration", `${this.options.transitionDuration}ms`);
+        document.body.style.setProperty("--background-rotation-transition-duration", `${this.options.transitionDuration}ms`);
+        this.prepareItems();
+        if (this.items.length === 1) {
+            this.showStaticImage();
+            return;
+        }
+        this.updateMode();
+        if (!this.options.rotateOnMobile) {
+            this.mobileMediaQuery.addEventListener("change", () => this.updateMode());
+        }
+        if (this.options.reducedMotion) {
+            this.reducedMotionMediaQuery.addEventListener("change", () => this.updateMode());
+        }
+        if (this.options.controls) {
+            this.createControls();
+        }
+    }
+    shouldRun() {
+        if (!this.options.enabled) {
+            this.logger.log("Background rotation is disabled");
+            return false;
+        }
+        const container = document.querySelector(`.page-backgroundImage ${this.options.backgroundImageSelector}, .body-banner ${this.options.backgroundImageSelector}`);
+        if (!container)
+            return false;
+        if (!container.querySelector(this.options.eachImageSelector)) {
+            this.logger.log("No background image items found to rotate");
+            return false;
+        }
+        return true;
+    }
+    prepareItems() {
+        this.items.forEach((item, index) => {
+            const layer = this.getItemLayer(item);
+            const imageUrl = this.getItemImageUrl(item);
+            if (!imageUrl) {
+                this.logger.log("Background image item has no image source", item);
+            }
+            this.imageUrls[index] = imageUrl;
+            layer.classList.add("background-rotation-layer");
+            layer.setAttribute("aria-hidden", "true");
+            this.layers[index] = layer;
+        });
+    }
+    // The inline background-image is what makes a layer fetch its image, so it is
+    // applied when the layer is first shown rather than for every layer up front
+    applyLayerImage(index) {
+        const layer = this.layers[index];
+        const imageUrl = this.imageUrls[index];
+        if (!layer || !imageUrl || layer.style.backgroundImage)
+            return;
+        layer.style.backgroundImage = `url('${imageUrl}')`;
+    }
+    // Fetches the first image ahead of other page assets so the background
+    // paints as early as possible; only ever applied to the first image shown
+    preloadFirstImage(index) {
+        if (this.firstImagePreloaded)
+            return;
+        this.firstImagePreloaded = true;
+        const imageUrl = this.imageUrls[index];
+        if (!imageUrl)
+            return;
+        const preload = document.createElement("link");
+        preload.rel = "preload";
+        preload.setAttribute("as", "image");
+        preload.href = imageUrl;
+        preload.setAttribute("fetchpriority", "high");
+        document.head.appendChild(preload);
+    }
+    // The remaining layers are applied once the page has settled, so a full set of
+    // viewport-sized images isn't competing with the form's own assets during load.
+    // Warming waits until the first image has finished loading AND a minimum 4s
+    // delay has passed, so it never competes with the first image's bandwidth.
+    // The layers are still applied ahead of the first rotation (10s initialDelay),
+    // so cross-fades don't start against an image that hasn't been fetched yet.
+    scheduleImageWarming(index) {
+        if (this.warmingScheduled || this.imagesWarmed)
+            return;
+        this.warmingScheduled = true;
+        const imageUrl = this.imageUrls[index];
+        const firstImageLoaded = new Promise((resolve) => {
+            if (!imageUrl) {
+                resolve();
+                return;
+            }
+            const probe = new Image();
+            probe.onload = () => resolve();
+            probe.onerror = () => resolve();
+            probe.src = imageUrl;
+        });
+        const minimumDelay = new Promise((resolve) => window.setTimeout(resolve, 4000));
+        Promise.all([firstImageLoaded, minimumDelay]).then(() => this.warmRemainingImages());
+    }
+    warmRemainingImages() {
+        if (this.imagesWarmed)
+            return;
+        this.imagesWarmed = true;
+        const warm = () => this.items.forEach((_, index) => this.applyLayerImage(index));
+        const requestIdle = window.requestIdleCallback;
+        if (requestIdle) {
+            requestIdle.call(window, warm, { timeout: 3000 });
+        }
+        else {
+            window.setTimeout(warm, 1000);
+        }
+    }
+    // The item is typically the <img> tag itself. If MediaAttribution has wrapped
+    // it in a <figure class="media-with-attribution">, the figure becomes the fade
+    // layer so its figattribution cross-fades in sync with the image
+    getItemLayer(item) {
+        var _a;
+        if (item instanceof HTMLImageElement &&
+            ((_a = item.parentElement) === null || _a === void 0 ? void 0 : _a.matches("figure.media-with-attribution"))) {
+            return item.parentElement;
+        }
+        return item;
+    }
+    getItemImage(item) {
+        if (item instanceof HTMLImageElement)
+            return item;
+        return item.querySelector("img");
+    }
+    getItemImageUrl(item) {
+        const img = this.getItemImage(item);
+        if (!img)
+            return null;
+        return img.getAttribute("data-src") || img.getAttribute("src");
+    }
+    isStaticMode() {
+        // With controls enabled a reduced-motion user can still advance the
+        // images on their own, so only treat reduced motion as static mode
+        // when there are no controls
+        if (this.reducedMotionPreferred() && !this.options.controls) {
+            return true;
+        }
+        if (!this.options.rotateOnMobile && this.mobileMediaQuery.matches) {
+            return true;
+        }
+        return false;
+    }
+    reducedMotionPreferred() {
+        return this.options.reducedMotion && this.reducedMotionMediaQuery.matches;
+    }
+    // Starts or stops the rotation based on the current viewport and motion
+    // preferences, called on page load and whenever they change
+    updateMode() {
+        if (this.isStaticMode()) {
+            this.stopRotation();
+            if (this.currentIndex === -1) {
+                this.showStaticImage();
+            }
+            else {
+                page_background_rotation_ENGrid.setBodyData("background-rotation", "static");
+            }
+            this.logger.log("Static background image mode");
+            return;
+        }
+        // A reduced-motion preference (with controls enabled) starts paused so
+        // the user can advance the images on their own; if the preference is
+        // removed again, only auto-resume when the pause wasn't user-initiated
+        if (this.reducedMotionPreferred()) {
+            this.stopRotationTimer();
+            this.isPaused = true;
+            this.pausedForReducedMotion = true;
+            this.updatePauseButton();
+            this.logger.log("Auto-rotation paused for reduced motion preference");
+        }
+        else if (this.pausedForReducedMotion) {
+            this.pausedForReducedMotion = false;
+            this.isPaused = false;
+            this.updatePauseButton();
+        }
+        if (this.rotationTimer !== null || this.initialDelayTimer !== null)
+            return;
+        const startIndex = this.currentIndex !== -1
+            ? this.currentIndex
+            : this.options.randomStart
+                ? this.getRandomIndex()
+                : 0;
+        // Preload before the layer's background-image is applied, so the
+        // high-priority fetch is the one that hits the network first
+        this.preloadFirstImage(startIndex);
+        this.setActiveItem(startIndex);
+        this.scheduleImageWarming(startIndex);
+        page_background_rotation_ENGrid.setBodyData("background-rotation", "active");
+        if (this.canRotate())
+            this.startRotationTimer();
+        this.logger.log(`Rotating ${this.items.length} background images every ${this.options.interval}ms`);
+    }
+    // The first rotation waits for initialDelay to give the first image (and the
+    // warming of the rest) time to load; later rotations use the normal interval.
+    // If paused before the first rotation, the full initial delay re-arms on resume
+    startRotationTimer() {
+        this.stopRotationTimer();
+        if (!this.initialDelayElapsed) {
+            this.initialDelayTimer = window.setTimeout(() => {
+                this.initialDelayTimer = null;
+                this.initialDelayElapsed = true;
+                this.rotateToNextImage();
+                this.rotationTimer = window.setInterval(() => this.rotateToNextImage(), this.options.interval);
+            }, this.options.initialDelay);
+            return;
+        }
+        this.rotationTimer = window.setInterval(() => this.rotateToNextImage(), this.options.interval);
+    }
+    stopRotationTimer() {
+        if (this.initialDelayTimer !== null) {
+            window.clearTimeout(this.initialDelayTimer);
+            this.initialDelayTimer = null;
+        }
+        if (this.rotationTimer !== null) {
+            window.clearInterval(this.rotationTimer);
+            this.rotationTimer = null;
+        }
+    }
+    stopRotation() {
+        this.stopRotationTimer();
+        this.finishTransition();
+    }
+    // Settles a cross-fade: only the current image keeps the class that makes it
+    // visible, and the in-flow layer moves to it. Runs when a transition ends, and
+    // again if the next transition starts first, so an interrupted fade can never
+    // leave a stale layer stacked on top of the current one
+    finishTransition() {
+        var _a;
+        if (this.transitionTimer !== null) {
+            window.clearTimeout(this.transitionTimer);
+            this.transitionTimer = null;
+        }
+        this.layers.forEach((layer, index) => {
+            layer.classList.remove("background-rotation-outgoing");
+            if (index === this.currentIndex)
+                return;
+            layer.classList.remove("active");
+            layer.setAttribute("aria-hidden", "true");
+        });
+        if (this.currentIndex !== -1) {
+            this.setFlowLayer(this.layers[this.currentIndex]);
+        }
+        (_a = this.container) === null || _a === void 0 ? void 0 : _a.classList.remove(this.options.transitionClass);
+    }
+    showStaticImage() {
+        const index = this.options.randomStart ? this.getRandomIndex() : 0;
+        this.preloadFirstImage(index);
+        this.setActiveItem(index);
+        page_background_rotation_ENGrid.setBodyData("background-rotation", "static");
+    }
+    setActiveItem(index, moveFlow = true) {
+        var _a;
+        const layer = this.layers[index];
+        if (!layer)
+            return;
+        this.applyLayerImage(index);
+        layer.classList.add("active");
+        layer.removeAttribute("aria-hidden");
+        this.currentIndex = index;
+        if (moveFlow)
+            this.setFlowLayer(layer);
+        const imageUrl = this.imageUrls[index];
+        if (imageUrl) {
+            document.body.style.setProperty("--background-rotation-image", `url('${imageUrl}')`);
+        }
+        setTimeout(() => {
+            page_background_rotation_ENGrid.setBodyData("background-rotation-theme", this.getItemTheme(this.items[index]));
+        }, 300);
+        this.logger.log("Active background image", index + 1, "of", this.items.length, (_a = this.getItemAttribution(this.items[index])) !== null && _a !== void 0 ? _a : "");
+    }
+    // Marks the single layer that stays in-flow to give the container its height
+    // at the <=499px breakpoint. Kept on the outgoing layer during a cross-fade
+    // so two in-flow layers never stack, and moved to the incoming layer once
+    // the transition ends (see finishTransition)
+    setFlowLayer(layer) {
+        this.layers.forEach((item) => item.classList.remove("background-rotation-flow"));
+        layer.classList.add("background-rotation-flow");
+    }
+    rotateToNextImage() {
+        this.goToImage(this.getNextIndex());
+    }
+    goToImage(nextIndex, addToHistory = true) {
+        if (nextIndex === this.currentIndex)
+            return;
+        if (addToHistory && this.currentIndex !== -1) {
+            this.history.push(this.currentIndex);
+            if (this.history.length > this.items.length * 2)
+                this.history.shift();
+        }
+        this.updatePreviousButtonState();
+        // Settle a fade that is still running before starting the next one
+        this.finishTransition();
+        const outgoingLayer = this.layers[this.currentIndex];
+        // The outgoing layer keeps .active (staying fully opaque) while the
+        // incoming layer fades in on top of it, so the composite is opaque at
+        // every point of the cross-fade — nothing behind the layers ever washes
+        // through. It loses .active in finishTransition, once it is fully covered.
+        outgoingLayer === null || outgoingLayer === void 0 ? void 0 : outgoingLayer.classList.add("background-rotation-outgoing");
+        outgoingLayer === null || outgoingLayer === void 0 ? void 0 : outgoingLayer.setAttribute("aria-hidden", "true");
+        this.container.classList.add(this.options.transitionClass);
+        this.setActiveItem(nextIndex, false);
+        this.transitionTimer = window.setTimeout(() => this.finishTransition(), this.options.transitionDuration);
+    }
+    goToNextImage() {
+        this.goToImage(this.getNextIndex());
+        this.announceImage();
+        if (this.canRotate())
+            this.startRotationTimer();
+    }
+    goToPreviousImage() {
+        const previousIndex = this.history.pop();
+        if (previousIndex === undefined) {
+            this.logger.log("No previous background image in the history");
+            return;
+        }
+        this.goToImage(previousIndex, false);
+        this.announceImage();
+        if (this.canRotate())
+            this.startRotationTimer();
+    }
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        // Once the user touches the pause control the pause is theirs, so a later
+        // reduced-motion change no longer auto-resumes the rotation
+        this.pausedForReducedMotion = false;
+        if (this.isPaused) {
+            this.stopRotationTimer();
+            this.logger.log("Background rotation paused");
+        }
+        else {
+            if (this.canRotate())
+                this.startRotationTimer();
+            this.logger.log("Background rotation resumed");
+        }
+        this.updatePauseButton();
+    }
+    createControls() {
+        const controls = document.createElement("div");
+        controls.className = "background-rotation-controls";
+        controls.setAttribute("role", "group");
+        controls.setAttribute("aria-label", "Background image rotation controls");
+        // Pause the auto-rotation while the user is hovering or tabbing through the
+        // controls, so nobody has to chase a moving target
+        controls.addEventListener("mouseenter", () => this.pauseForInteraction("hover"));
+        controls.addEventListener("mouseleave", () => this.resumeFromInteraction("hover"));
+        controls.addEventListener("focusin", () => this.pauseForInteraction("focus"));
+        controls.addEventListener("focusout", (event) => {
+            if (!controls.contains(event.relatedTarget)) {
+                this.resumeFromInteraction("focus");
+            }
+        });
+        this.previousButton = this.createControlButton("background-rotation-prev", "Previous background image", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>');
+        this.previousButton.addEventListener("click", () => this.goToPreviousImage());
+        this.pauseButton = this.createControlButton("background-rotation-pause", "Pause background rotation", this.pauseIcon());
+        this.pauseButton.setAttribute("aria-pressed", "false");
+        this.pauseButton.addEventListener("click", () => this.togglePause());
+        const nextButton = this.createControlButton("background-rotation-next", "Next background image", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>');
+        nextButton.addEventListener("click", () => this.goToNextImage());
+        this.liveRegion = document.createElement("div");
+        this.liveRegion.className = "engrid__sr-only";
+        this.liveRegion.setAttribute("aria-live", "polite");
+        this.liveRegion.setAttribute("aria-atomic", "true");
+        controls.append(this.previousButton, this.pauseButton, nextButton, this.liveRegion);
+        document.body.appendChild(controls);
+        this.updatePreviousButtonState();
+        // Reflect a pause that happened before the controls existed (e.g. the
+        // reduced-motion auto-pause in updateMode)
+        this.updatePauseButton();
+    }
+    // Auto-rotation pauses while the user interacts with the controls, separately
+    // from a user-initiated pause, and resumes when the interaction ends
+    pauseForInteraction(kind) {
+        this.interactionPauses.add(kind);
+        if (!this.isPaused)
+            this.stopRotationTimer();
+    }
+    resumeFromInteraction(kind) {
+        this.interactionPauses.delete(kind);
+        if (this.canRotate() &&
+            this.rotationTimer === null &&
+            this.initialDelayTimer === null &&
+            !this.isStaticMode()) {
+            this.startRotationTimer();
+        }
+    }
+    // Auto-rotation only runs when nothing is holding it: no user-initiated pause,
+    // and no hover or focus on the controls. Using a control implies one of those
+    // interactions, so the timer can't be restarted out from under the user
+    canRotate() {
+        return !this.isPaused && this.interactionPauses.size === 0;
+    }
+    updatePreviousButtonState() {
+        if (this.previousButton) {
+            this.previousButton.disabled = this.history.length === 0;
+        }
+    }
+    // Announce user-initiated image changes to screen readers. Auto-rotation is
+    // intentionally not announced to avoid interrupting every few seconds.
+    announceImage() {
+        var _a;
+        if (!this.liveRegion)
+            return;
+        const item = this.items[this.currentIndex];
+        const description = ((_a = this.getItemImage(item)) === null || _a === void 0 ? void 0 : _a.getAttribute("alt")) ||
+            this.getItemAttribution(item);
+        this.liveRegion.textContent = `Background image ${this.currentIndex + 1} of ${this.items.length}${description ? `: ${description}` : ""}`;
+    }
+    createControlButton(className, ariaLabel, icon) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = className;
+        button.setAttribute("aria-label", ariaLabel);
+        button.innerHTML = icon;
+        return button;
+    }
+    updatePauseButton() {
+        if (!this.pauseButton)
+            return;
+        this.pauseButton.innerHTML = this.isPaused
+            ? this.playIcon()
+            : this.pauseIcon();
+        this.pauseButton.setAttribute("aria-label", this.isPaused ? "Play background rotation" : "Pause background rotation");
+        this.pauseButton.setAttribute("aria-pressed", String(this.isPaused));
+    }
+    pauseIcon() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+    }
+    playIcon() {
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+    }
+    getNextIndex() {
+        switch (this.options.slideOrder) {
+            case "sequential":
+                return (this.currentIndex + 1) % this.items.length;
+            case "true-random":
+                return this.getRandomIndex(this.currentIndex);
+            case "random":
+            default:
+                return this.getNextFromRandomBag();
+        }
+    }
+    // "Random bag" selection: every image is displayed once before any image is
+    // repeated, and the current image is never repeated back-to-back
+    getNextFromRandomBag() {
+        if (this.randomBag.length === 0) {
+            this.randomBag = this.items
+                .map((_, index) => index)
+                .filter((index) => index !== this.currentIndex);
+            for (let i = this.randomBag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [this.randomBag[i], this.randomBag[j]] = [
+                    this.randomBag[j],
+                    this.randomBag[i],
+                ];
+            }
+        }
+        return this.randomBag.pop();
+    }
+    getRandomIndex(excludeIndex = -1) {
+        if (this.items.length <= 1)
+            return 0;
+        let index = excludeIndex;
+        while (index === excludeIndex) {
+            index = Math.floor(Math.random() * this.items.length);
+        }
+        return index;
+    }
+    // Each item can set a data-theme="light" or data-theme="dark" (default)
+    // attribute to control the .body-title h1 text color shown over its image
+    getItemTheme(item) {
+        var _a;
+        return ((_a = item.getAttribute("data-theme")) === null || _a === void 0 ? void 0 : _a.toLowerCase()) === "light"
+            ? "light"
+            : "dark";
+    }
+    // Each item carries its own figattribution/figcaption (added by the MediaAttribution
+    // component or authored directly), so it cross-fades in sync with its image
+    getItemAttribution(item) {
+        var _a;
+        const attribution = item.matches("img")
+            ? (_a = item.parentElement) === null || _a === void 0 ? void 0 : _a.querySelector("figattribution, figcaption")
+            : item.querySelector("figattribution, figcaption");
+        return attribution ? attribution.textContent : null;
     }
 }
 
@@ -16000,14 +19021,29 @@ class ProgressBar {
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/remember-me.js
+var remember_me_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
 
 
 const remember_me_tippy = (__webpack_require__(9244)/* ["default"] */ .Ay);
+// localStorage key used to cache the per-device AES-GCM encryption key.
+// A random secret generated once per device and held in localStorage.
+const RM_ENCRYPTION_KEY_STORAGE_NAME = "engrid-remember-me-key";
 class RememberMe {
     constructor(options) {
         this._form = EnForm.getInstance();
         this._events = RememberMeEvents.getInstance();
         this.iframe = null;
+        this.encryptData = options.encryptData ? options.encryptData : false;
+        this.hide = options.hide ? options.hide : false;
         this.remoteUrl = options.remoteUrl ? options.remoteUrl : null;
         this.cookieName = options.cookieName
             ? options.cookieName
@@ -16045,11 +19081,21 @@ class RememberMe {
             options.fieldClearSelectorTargetLocation
                 ? options.fieldClearSelectorTargetLocation
                 : "before";
+        this.fieldClearLabel = options.fieldClearLabel
+            ? options.fieldClearLabel
+            : engrid_ENGrid.t("rememberMe.clearLabel");
+        this.rememberMeLabel = options.rememberMeLabel
+            ? options.rememberMeLabel
+            : engrid_ENGrid.t("rememberMe.label");
         this.fieldData = {};
         if (this.useRemote()) {
             this.createIframe(() => {
                 if (this.iframe && this.iframe.contentWindow) {
-                    this.iframe.contentWindow.postMessage(JSON.stringify({ key: this.cookieName, operation: "read" }), "*");
+                    this.iframe.contentWindow.postMessage(JSON.stringify({
+                        key: this.cookieName,
+                        operation: "read",
+                        encryptData: this.encryptData,
+                    }), "*");
                     this._form.onSubmit.subscribe(() => {
                         if (this.rememberMeOptIn) {
                             this.readFields();
@@ -16068,7 +19114,9 @@ class RememberMe {
                     data.key &&
                     data.value !== undefined &&
                     data.key === this.cookieName) {
-                    this.updateFieldData(data.value);
+                    if (data.value !== null) {
+                        this.updateFieldData(data.value);
+                    }
                     this.writeFields();
                     let hasFieldData = Object.keys(this.fieldData).length > 0;
                     if (!hasFieldData) {
@@ -16080,16 +19128,37 @@ class RememberMe {
                 }
             });
         }
+        else if (this.encryptData) {
+            // Same flow as the unencrypted branch below, but the cookie payload is
+            // AES-GCM encrypted/decrypted (browser-native Web Crypto), so reading
+            // the cookie is asynchronous. A failed decrypt (foreign device or
+            // cleared localStorage) leaves fieldData empty and silently falls back
+            // to the standard, no-autofill experience.
+            this.readCookieEncrypted().then(() => {
+                let hasFieldData = Object.keys(this.fieldData).length > 0;
+                if (!hasFieldData) {
+                    this.insertRememberMeOptin();
+                }
+                else {
+                    this.insertClearRememberMeLink();
+                }
+                this.writeFields();
+                this._form.onSubmit.subscribe(() => {
+                    if (this.rememberMeOptIn) {
+                        this.readFields();
+                        this.saveCookieEncrypted();
+                    }
+                });
+            });
+        }
         else {
             this.readCookie();
             let hasFieldData = Object.keys(this.fieldData).length > 0;
             if (!hasFieldData) {
                 this.insertRememberMeOptin();
-                this.rememberMeOptIn = false;
             }
             else {
                 this.insertClearRememberMeLink();
-                this.rememberMeOptIn = true;
             }
             this.writeFields();
             this._form.onSubmit.subscribe(() => {
@@ -16101,24 +19170,31 @@ class RememberMe {
         }
     }
     updateFieldData(jsonData) {
-        if (jsonData) {
-            let data = JSON.parse(jsonData);
-            for (let i = 0; i < this.fieldNames.length; i++) {
-                if (data[this.fieldNames[i]] !== undefined) {
-                    this.fieldData[this.fieldNames[i]] = decodeURIComponent(data[this.fieldNames[i]]);
-                }
+        if (!jsonData)
+            return;
+        let data;
+        try {
+            data = JSON.parse(jsonData);
+        }
+        catch (e) {
+            // Payload is not valid JSON (e.g. corrupted or unexpected ciphertext).
+            // Fall back silently to the no-autofill experience.
+            return;
+        }
+        for (let i = 0; i < this.fieldNames.length; i++) {
+            if (data[this.fieldNames[i]] !== undefined) {
+                this.fieldData[this.fieldNames[i]] = decodeURIComponent(data[this.fieldNames[i]]);
             }
         }
     }
     insertClearRememberMeLink() {
         let clearRememberMeField = document.getElementById("clear-autofill-data");
         if (!clearRememberMeField) {
-            const clearAutofillLabel = "clear autofill";
             clearRememberMeField = document.createElement("a");
             clearRememberMeField.setAttribute("id", "clear-autofill-data");
             clearRememberMeField.classList.add("label-tooltip");
             clearRememberMeField.setAttribute("style", "cursor: pointer;");
-            clearRememberMeField.innerHTML = `(${clearAutofillLabel})`;
+            clearRememberMeField.innerHTML = this.fieldClearLabel;
             const targetField = this.getElementByFirstSelector(this.fieldClearSelectorTarget);
             if (targetField) {
                 if (this.fieldClearSelectorTargetLocation === "after") {
@@ -16134,6 +19210,9 @@ class RememberMe {
             this.clearFields(["supporter.country" /*, 'supporter.emailAddress'*/]);
             if (this.useRemote()) {
                 this.clearCookieOnRemote();
+            }
+            else if (this.encryptData) {
+                this.clearCookieEncrypted();
             }
             else {
                 this.clearCookie();
@@ -16164,12 +19243,11 @@ class RememberMe {
     insertRememberMeOptin() {
         let rememberMeOptInField = document.getElementById("remember-me-opt-in");
         if (!rememberMeOptInField) {
-            const rememberMeLabel = "Remember Me";
-            const rememberMeInfo = `
-				Check “Remember me” to complete forms on this device faster. 
-				While your financial information won’t be stored, you should only check this box from a personal device. 
-				Click “Clear autofill” to remove the information from your device at any time.
-			`;
+            const rememberMeLabel = this.rememberMeLabel;
+            const rememberMeInfo = engrid_ENGrid.t("rememberMe.tooltip", {
+                label: rememberMeLabel,
+                clearLabel: this.fieldClearLabel,
+            });
             const rememberMeOptInFieldChecked = this.rememberMeOptIn ? "checked" : "";
             const rememberMeOptInField = document.createElement("div");
             rememberMeOptInField.classList.add("en__field", "en__field--checkbox", "en__field--question", "rememberme-wrapper");
@@ -16206,6 +19284,9 @@ class RememberMe {
                         }
                     });
                 }
+                if (this.hide) {
+                    rememberMeOptInField.classList.add("hide");
+                }
                 remember_me_tippy("#rememberme-learn-more-toggle", { content: rememberMeInfo });
             }
         }
@@ -16228,7 +19309,7 @@ class RememberMe {
                 "position:absolute;width:1px;height:1px;left:-9999px;";
             iframe.src = this.remoteUrl;
             iframe.setAttribute("sandbox", "allow-same-origin allow-scripts");
-            iframe.setAttribute("title", "Remember Me iframe");
+            iframe.setAttribute("title", engrid_ENGrid.t("rememberMe.iframeTitle"));
             this.iframe = iframe;
             document.body.appendChild(this.iframe);
             this.iframe.addEventListener("load", () => iframeLoaded(), false);
@@ -16255,6 +19336,7 @@ class RememberMe {
                 value: this.fieldData,
                 operation: "write",
                 expires: this.cookieExpirationDays,
+                encryptData: this.encryptData,
             }), "*");
         }
     }
@@ -16265,6 +19347,142 @@ class RememberMe {
         set(this.cookieName, JSON.stringify(this.fieldData), {
             expires: this.cookieExpirationDays,
         });
+    }
+    /**
+     * Reads and decrypts the local (non-remote) Remember Me cookie using
+     * browser-native AES-GCM (Web Crypto), with the key held in localStorage
+     * on this device. If the key is absent (different device or cleared
+     * storage) or decryption otherwise fails, the field data is left empty
+     * and the component falls back to the normal, no-autofill experience.
+     */
+    readCookieEncrypted() {
+        return remember_me_awaiter(this, void 0, void 0, function* () {
+            const raw = get(this.cookieName);
+            if (!raw) {
+                return;
+            }
+            const decrypted = yield this.decryptPayload(raw);
+            if (decrypted) {
+                this.updateFieldData(decrypted);
+            }
+        });
+    }
+    /**
+     * Encrypts the current fieldData with AES-GCM (Web Crypto) and stores the
+     * base64-encoded result in the local cookie. If encryption isn't possible
+     * (e.g. Web Crypto unavailable), nothing is written.
+     */
+    saveCookieEncrypted() {
+        return remember_me_awaiter(this, void 0, void 0, function* () {
+            const encrypted = yield this.encryptPayload(JSON.stringify(this.fieldData));
+            if (encrypted) {
+                set(this.cookieName, encrypted, {
+                    expires: this.cookieExpirationDays,
+                });
+            }
+        });
+    }
+    clearCookieEncrypted() {
+        this.fieldData = {};
+        this.saveCookieEncrypted();
+    }
+    /**
+     * Retrieves the per-device AES-GCM encryption key. A random secret
+     * generated once per device and held in localStorage — never written
+     * to the cookie, so it never travels with the transported value.
+     */
+    getEncryptionKey() {
+        return remember_me_awaiter(this, void 0, void 0, function* () {
+            if (!window.crypto || !window.crypto.subtle) {
+                return null;
+            }
+            const storedKey = window.localStorage.getItem(RM_ENCRYPTION_KEY_STORAGE_NAME);
+            if (storedKey) {
+                try {
+                    return yield window.crypto.subtle.importKey("raw", this.base64ToArrayBuffer(storedKey), { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+                }
+                catch (e) {
+                    return null;
+                }
+            }
+            try {
+                const key = yield window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+                const exported = yield window.crypto.subtle.exportKey("raw", key);
+                window.localStorage.setItem(RM_ENCRYPTION_KEY_STORAGE_NAME, this.arrayBufferToBase64(exported));
+                return key;
+            }
+            catch (e) {
+                return null;
+            }
+        });
+    }
+    /**
+     * Encrypts a plaintext string with AES-GCM and returns the base64-encoded
+     * IV + ciphertext, ready for storage. Returns null if a key isn't
+     * available (e.g. Web Crypto unsupported).
+     */
+    encryptPayload(plaintext) {
+        return remember_me_awaiter(this, void 0, void 0, function* () {
+            const key = yield this.getEncryptionKey();
+            if (!key) {
+                return null;
+            }
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const ciphertext = yield window.crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(plaintext));
+            const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+            combined.set(iv);
+            combined.set(new Uint8Array(ciphertext), iv.length);
+            return this.arrayBufferToBase64(combined);
+        });
+    }
+    /**
+     * Decrypts a base64-encoded IV + ciphertext payload previously produced by
+     * encryptPayload. Returns null (rather than throwing) if the key is
+     * missing or decryption otherwise fails, so callers can gracefully fall
+     * back to the standard, no-autofill experience.
+     */
+    decryptPayload(encryptedBase64) {
+        return remember_me_awaiter(this, void 0, void 0, function* () {
+            const key = yield this.getEncryptionKey();
+            if (!key) {
+                return null;
+            }
+            let combined;
+            try {
+                combined = new Uint8Array(this.base64ToArrayBuffer(encryptedBase64));
+            }
+            catch (e) {
+                return null;
+            }
+            if (combined.length < 13) {
+                return null;
+            }
+            const iv = combined.slice(0, 12);
+            const ciphertext = combined.slice(12);
+            try {
+                const decrypted = yield window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+                return new TextDecoder().decode(decrypted);
+            }
+            catch (e) {
+                return null;
+            }
+        });
+    }
+    arrayBufferToBase64(buffer) {
+        let binary = "";
+        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+    base64ToArrayBuffer(base64) {
+        const binary = window.atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
     }
     readFields() {
         for (let i = 0; i < this.fieldNames.length; i++) {
@@ -16538,6 +19756,11 @@ class OtherAmount {
             otherAmountField.setAttribute("autocomplete", "off");
             otherAmountField.setAttribute("data-lpignore", "true");
             otherAmountField.addEventListener("change", (e) => {
+                // Formatting only matters when entering a custom amount; skip
+                // unrelated change events (e.g. browser autofill firing on the
+                // field while a preset amount is selected)
+                if (!this._amount.isOtherAmountSelected())
+                    return;
                 const target = e.target;
                 const amount = target.value;
                 const cleanAmount = engrid_ENGrid.cleanAmount(amount);
@@ -16584,92 +19807,6 @@ class OtherAmount {
     }
 }
 
-;// ./node_modules/@4site/engrid-scripts/dist/logger.js
-
-/**
- * A better logger. It only works if debug is enabled.
- */
-class EngridLogger {
-    constructor(prefix, color, background, emoji) {
-        this.prefix = "";
-        this.color = "black";
-        this.background = "white";
-        this.emoji = "";
-        if (emoji) {
-            this.emoji = emoji;
-        }
-        else {
-            switch (color) {
-                case "red":
-                    this.emoji = "🔴";
-                    break;
-                case "green":
-                    this.emoji = "🟢";
-                    break;
-                case "blue":
-                    this.emoji = "🔵";
-                    break;
-                case "yellow":
-                    this.emoji = "🟡";
-                    this.background = "black";
-                    break;
-                case "purple":
-                    this.emoji = "🟣";
-                    break;
-                case "black":
-                default:
-                    this.emoji = "⚫";
-                    break;
-            }
-        }
-        if (prefix) {
-            this.prefix = `[ENgrid ${prefix}]`;
-        }
-        if (color) {
-            this.color = color;
-        }
-        if (background) {
-            this.background = background;
-        }
-    }
-    get log() {
-        if (!engrid_ENGrid.debug && engrid_ENGrid.getUrlParameter("debug") !== "log") {
-            return () => { };
-        }
-        return console.log.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
-    }
-    get success() {
-        if (!engrid_ENGrid.debug) {
-            return () => { };
-        }
-        return console.log.bind(window.console, "%c ✅ " + this.prefix + " %s", `color: green; background-color: white; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
-    }
-    get danger() {
-        if (!engrid_ENGrid.debug) {
-            return () => { };
-        }
-        return console.log.bind(window.console, "%c ⛔️ " + this.prefix + " %s", `color: red; background-color: white; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
-    }
-    get warn() {
-        if (!engrid_ENGrid.debug) {
-            return () => { };
-        }
-        return console.warn.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
-    }
-    get dir() {
-        if (!engrid_ENGrid.debug) {
-            return () => { };
-        }
-        return console.dir.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
-    }
-    get error() {
-        if (!engrid_ENGrid.debug) {
-            return () => { };
-        }
-        return console.error.bind(window.console, "%c" + this.emoji + " " + this.prefix + " %s", `color: ${this.color}; background-color: ${this.background}; font-size: 1.2em; padding: 4px; border-radius: 2px; font-family: monospace;`);
-    }
-}
-
 ;// ./node_modules/@4site/engrid-scripts/dist/min-max-amount.js
 // This script adds an erros message to the page if the amount is greater than the max amount or less than the min amount.
 
@@ -16683,6 +19820,7 @@ class MinMaxAmount {
         this.maxAmount = (_b = engrid_ENGrid.getOption("MaxAmount")) !== null && _b !== void 0 ? _b : 100000;
         this.minAmountMessage = engrid_ENGrid.getOption("MinAmountMessage");
         this.maxAmountMessage = engrid_ENGrid.getOption("MaxAmountMessage");
+        this.disableLiveValidation = engrid_ENGrid.getOption("DisableMinMaxLiveValidation");
         this.enAmountValidator = null;
         this.logger = new EngridLogger("MinMaxAmount", "white", "purple", "🔢");
         if (!this.shouldRun()) {
@@ -16690,8 +19828,10 @@ class MinMaxAmount {
             return;
         }
         this.setValidationConfigFromEN();
-        this._amount.onAmountChange.subscribe((s) => window.setTimeout(this.liveValidate.bind(this), 1000) // Wait 1 second for the amount to be updated
-        );
+        if (!this.disableLiveValidation) {
+            this._amount.onAmountChange.subscribe((s) => window.setTimeout(this.liveValidate.bind(this), 1000) // Wait 1 second for the amount to be updated
+            );
+        }
         this._form.onValidate.subscribe(this.enOnValidate.bind(this));
     }
     // Should we run the script?
@@ -16709,6 +19849,14 @@ class MinMaxAmount {
                 otherAmount.focus();
             }
             this._form.validate = false;
+            if (this.disableLiveValidation) {
+                this.logger.log("Setting error on enOnValidate: " +
+                    (this.minAmountMessage || "Invalid Amount"));
+                // Defer so EN's own onValidate pass can't overwrite the error
+                window.setTimeout(() => {
+                    engrid_ENGrid.setError(".en__field--withOther", this.minAmountMessage || "Invalid Amount");
+                }, 300);
+            }
         }
         else if (this._amount.amount > this.maxAmount) {
             this.logger.log("Amount is greater than max amount: " + this.maxAmount);
@@ -16716,11 +19864,29 @@ class MinMaxAmount {
                 otherAmount.focus();
             }
             this._form.validate = false;
+            if (this.disableLiveValidation) {
+                this.logger.log("Setting error on enOnValidate: " +
+                    (this.maxAmountMessage || "Invalid Amount"));
+                // Defer so EN's own onValidate pass can't overwrite the error
+                window.setTimeout(() => {
+                    engrid_ENGrid.setError(".en__field--withOther", this.maxAmountMessage || "Invalid Amount");
+                }, 300);
+            }
         }
-        window.setTimeout(this.liveValidate.bind(this), 300);
+        else if (this.disableLiveValidation) {
+            // Amount is in range — clear any stale error left over from a previous submit
+            engrid_ENGrid.removeError(".en__field--withOther");
+        }
+        if (!this.disableLiveValidation) {
+            window.setTimeout(this.liveValidate.bind(this), 300);
+        }
     }
     // Disable Submit Button if the amount is not valid
     liveValidate() {
+        if (this.disableLiveValidation) {
+            this.logger.log("disableLiveValidation is set to true. Skipping live validation");
+            return;
+        }
         const amount = engrid_ENGrid.cleanAmount(this._amount.amount.toString());
         const activeElement = document.activeElement;
         if (activeElement &&
@@ -17214,6 +20380,14 @@ class DataLayer {
     getEndOfGiftProcessData() {
         let eventsData = window.sessionStorage.getItem(this.endOfGiftProcessStorageKey);
         return !eventsData ? [] : JSON.parse(eventsData);
+    }
+    pushVariable(variableName, variableValue = "") {
+        this.dataLayer.push({
+            [variableName.toUpperCase()]: variableValue,
+        });
+    }
+    pushEvent(eventName, eventProperties = {}) {
+        this.dataLayer.push(Object.assign({ event: eventName }, eventProperties));
     }
 }
 
@@ -19119,7 +22293,27 @@ class SwapAmounts {
         this._frequency = DonationFrequency.getInstance();
         this.defaultChange = false; // Tracks if user changed away from default after swap
         this.swapped = false; // Tracks if we've already executed at least one swap
+        this.hasOneTimeNSG = false;
+        this.hasRecurringNSG = false;
         this.loadAmountsFromUrl();
+        this.hasOneTimeNSG = !!(window.EngagingNetworks.suggestedGift &&
+            window.EngagingNetworks.suggestedGift.single &&
+            window.EngagingNetworks.suggestedGift.single.length > 0);
+        this.hasRecurringNSG = !!(window.EngagingNetworks.suggestedGift &&
+            window.EngagingNetworks.suggestedGift.recurring &&
+            window.EngagingNetworks.suggestedGift.recurring.length > 0);
+        if (this.hasOneTimeNSG) {
+            engrid_ENGrid.setBodyData("en-nsg-onetime", true);
+        }
+        if (this.hasRecurringNSG) {
+            engrid_ENGrid.setBodyData("en-nsg-recurring", true);
+        }
+        if (this.hasOneTimeNSG || this.hasRecurringNSG) {
+            engrid_ENGrid.setBodyData("en-nsg", true);
+            this.logger.log("Detected NSG amounts", {
+                suggestedGift: window.EngagingNetworks.suggestedGift,
+            });
+        }
         if (!this.shouldRun())
             return;
         // Respond when frequency changes
@@ -19179,6 +22373,15 @@ class SwapAmounts {
         const config = configs[freq];
         if (!config)
             return;
+        if (this.shouldUseNSG(freq, config)) {
+            this.logger.log(`NSG present for ${freq}, using NSG amounts`, {
+                suggestedGift: window.EngagingNetworks.suggestedGift,
+            });
+            window.EngagingNetworks.require._defined.enjs.swapList("donationAmt", this.toEnAmountListNSG(window.EngagingNetworks.suggestedGift, freq), { ignoreCurrentValue: true });
+            this._amount.load();
+            this.swapped = true;
+            return;
+        }
         const stickyDefault = !!config.stickyDefault;
         // If stickyDefault, always ignore current value so selected flag in list enforces default
         const ignoreCurrentValue = stickyDefault ? true : this.ignoreCurrentValue();
@@ -19186,6 +22389,15 @@ class SwapAmounts {
         this._amount.load();
         this.logger.log("Amounts Swapped To", config, { ignoreCurrentValue });
         this.swapped = true;
+    }
+    shouldUseNSG(freq, config) {
+        if (freq === "onetime" && this.hasOneTimeNSG && !config.overrideNSG) {
+            return true;
+        }
+        if (freq === "monthly" && this.hasRecurringNSG && !config.overrideNSG) {
+            return true;
+        }
+        return false;
     }
     /**
      * Convert the internal config object into the structure Engaging Networks expects
@@ -19197,13 +22409,19 @@ class SwapAmounts {
             value: value.toString(),
         }));
     }
+    /**
+     * Convert the Engaging Networks NSG config object into the structure Engaging Network Lists expect
+     */
+    toEnAmountListNSG(config, freq) {
+        const frequency = freq === "onetime" ? "single" : "recurring";
+        return config[frequency].map(({ nextSuggestedGift, value }) => ({
+            selected: nextSuggestedGift,
+            label: value > 0 ? value.toString() : "Other",
+            value: value > 0 ? value.toString() : "other",
+        }));
+    }
     shouldRun() {
-        const hasNSG = window.EngagingNetworks.suggestedGift !== undefined &&
-            Object.keys(window.EngagingNetworks.suggestedGift).length > 0;
-        if (!!window.EngridAmounts && hasNSG) {
-            this.logger.log("Not swapping amounts because NSG is active on page");
-        }
-        return !!window.EngridAmounts && !hasNSG;
+        return !!window.EngridAmounts;
     }
     ignoreCurrentValue() {
         const urlParam = engrid_ENGrid.getUrlParameter("transaction.donationAmt");
@@ -19916,11 +23134,14 @@ class PremiumGift {
                             if (newPremiumGift) {
                                 newPremiumGift.checked = true;
                                 newPremiumGift.dispatchEvent(new Event("change"));
+                                this.altsAndArias();
                             }
                         }, 100);
                     }
                     window.setTimeout(() => {
                         this.checkPremiumGift();
+                        this.altsAndArias();
+                        this.maxDonationAria();
                     }, 110);
                 }
             });
@@ -20007,35 +23228,78 @@ class PremiumGift {
     }
     // Sets alt tags for premium gift images and aria tags for premium gift radio inputs
     altsAndArias() {
-        const premiumTitle = document.querySelectorAll(".en__pg__detail h2.en__pg__name");
+        const premiumHeader = document.querySelector(".en__pgHeader");
+        const radioGroup = document.querySelector(".en__pgList");
+        if (premiumHeader && radioGroup) {
+            const premiumHeaderId = premiumHeader.id || "premium-gift-header";
+            premiumHeader.setAttribute("id", premiumHeaderId);
+            premiumHeader.setAttribute("role", "heading");
+            premiumHeader.setAttribute("aria-level", "2");
+            radioGroup.setAttribute("aria-labelledby", premiumHeaderId);
+            radioGroup.setAttribute("role", "radiogroup");
+        }
         const multistepBackButton = document.querySelectorAll(".multistep-button-container button.btn-back");
-        premiumTitle.forEach((item) => {
-            if (item) {
-                const titleText = item.innerHTML;
-                const parent = item.parentElement;
-                const prevSibling = parent === null || parent === void 0 ? void 0 : parent.previousElementSibling;
-                const radioInputSibling = prevSibling === null || prevSibling === void 0 ? void 0 : prevSibling.previousElementSibling;
-                if (prevSibling) {
-                    const imageDiv = prevSibling.querySelector(".en__pg__images");
-                    if (imageDiv) {
-                        const img = imageDiv.querySelector("img");
-                        if (img) {
-                            img.setAttribute("alt", titleText);
-                            img.style.width = "125px";
-                            img.style.height = "100px";
-                        }
-                    }
+        multistepBackButton.forEach((item) => {
+            item.setAttribute("aria-label", "Back");
+        });
+        const premiumRow = document.querySelectorAll(".en__pg");
+        premiumRow.forEach((item) => {
+            const premiumTitle = item.querySelector(".en__pg__detail h2.en__pg__name");
+            const titleText = (premiumTitle === null || premiumTitle === void 0 ? void 0 : premiumTitle.innerHTML) || "";
+            const premiumGiftInput = item.querySelector('input[name="en__pg"]');
+            const premiumGiftId = (premiumGiftInput === null || premiumGiftInput === void 0 ? void 0 : premiumGiftInput.value) || engrid_ENGrid.slugify(titleText);
+            premiumTitle === null || premiumTitle === void 0 ? void 0 : premiumTitle.setAttribute("id", `premium-gift-option-${premiumGiftId}`);
+            const details = item.querySelector(".en__pg__detail");
+            const display = item.querySelector(".en__pg__display");
+            const select = item.querySelector(".en__pg__select");
+            if (select) {
+                const radioInput = select.querySelector('input[type="radio"]');
+                if (radioInput) {
+                    radioInput.setAttribute("aria-labelledby", (premiumTitle === null || premiumTitle === void 0 ? void 0 : premiumTitle.id) || "");
                 }
-                if (radioInputSibling) {
-                    const radioInput = radioInputSibling.querySelector('input[type="radio"]');
-                    if (radioInput) {
-                        radioInput.setAttribute("aria-label", titleText);
+            }
+            if (details) {
+                const optionTypesParent = details.querySelector(".en__pg__optionTypes");
+                if (optionTypesParent) {
+                    this.altsAndAriasForSelects(optionTypesParent, titleText, premiumGiftId);
+                }
+            }
+            if (display) {
+                const imageDiv = display.querySelector(".en__pg__images");
+                if (imageDiv) {
+                    const img = imageDiv.querySelector("img");
+                    if (img) {
+                        img.setAttribute("alt", titleText);
+                        img.style.width = "125px";
+                        img.style.height = "100px";
                     }
                 }
             }
-            multistepBackButton.forEach((item) => {
-                item.setAttribute("aria-label", "Back");
+        });
+        this.syncOptionSelectStates();
+    }
+    syncOptionSelectStates() {
+        const premiumRows = document.querySelectorAll(".en__pg");
+        premiumRows.forEach((row) => {
+            const radioInput = row.querySelector('input[name="en__pg"]');
+            const optionSelects = row.querySelectorAll(".en__pg__optionType select");
+            optionSelects.forEach((select) => {
+                select.disabled = !(radioInput === null || radioInput === void 0 ? void 0 : radioInput.checked);
             });
+        });
+    }
+    altsAndAriasForSelects(optionTypesParent, titleText, premiumGiftId) {
+        optionTypesParent.setAttribute("aria-label", `Options for ${titleText}`);
+        const optionTypes = optionTypesParent.querySelectorAll(".en__pg__optionType");
+        optionTypes.forEach((option, index) => {
+            const label = option.querySelector("label");
+            const select = option.querySelector('select');
+            if (label && select) {
+                const labelId = engrid_ENGrid.slugify(label.innerText) || index.toString();
+                select.setAttribute("id", `premium-gift-option-type-${premiumGiftId}-${labelId}`);
+                label.setAttribute("for", select.id);
+                label.setAttribute("aria-label", `${label.innerText} for ${titleText}`);
+            }
         });
     }
     // This is for the Maximize My Donation aria-label - the tree structure for it is slightly different.
@@ -20326,8 +23590,12 @@ class CustomPremium {
 
 ;// ./node_modules/@4site/engrid-scripts/dist/digital-wallets.js
 
+
+
 class DigitalWallets {
     constructor() {
+        this.logger = new EngridLogger("DigitalWallets", "#fff", "#333", "👛");
+        this._form = EnForm.getInstance();
         //digital wallets not enabled.
         if (!document.getElementById("en__digitalWallet")) {
             engrid_ENGrid.setBodyData("payment-type-option-stripedigitalwallet", "false");
@@ -20336,6 +23604,7 @@ class DigitalWallets {
             engrid_ENGrid.setBodyData("payment-type-option-paypal-one-touch", "false");
             engrid_ENGrid.setBodyData("payment-type-option-venmo", "false");
             engrid_ENGrid.setBodyData("payment-type-option-daf", "false");
+            this.logger.log("No digital wallet container found, skipping digital wallet setup.");
             return;
         }
         // Add giveBySelect classes to the separate wallet containers
@@ -20413,6 +23682,7 @@ class DigitalWallets {
         }
     }
     addStripeDigitalWallets() {
+        this.logger.log("Stripe Digital Wallets detected");
         this.addOptionToPaymentTypeField("stripedigitalwallet", "GooglePay / ApplePay");
         // ENGrid.setBodyData(
         //   "payment-type-option-apple-pay",
@@ -20426,15 +23696,26 @@ class DigitalWallets {
         engrid_ENGrid.setBodyData("payment-type-option-apple-pay", "true");
         engrid_ENGrid.setBodyData("payment-type-option-google-pay", "true");
         engrid_ENGrid.setBodyData("payment-type-option-stripedigitalwallet", "true");
+        this.addStripeDigitalWalletListener()
+            ? this.logger.log("Stripe Digital Wallet listener added successfully")
+            : this.logger.log("Failed to add Stripe Digital Wallet listener");
     }
     addPaypalTouchDigitalWallets() {
+        this.logger.log("Paypal Touch Digital Wallets detected");
         this.addOptionToPaymentTypeField("paypaltouch", "Paypal / Venmo");
         engrid_ENGrid.setBodyData("payment-type-option-paypal-one-touch", "true");
         engrid_ENGrid.setBodyData("payment-type-option-venmo", "true");
+        this.addPaypalOneTouchListener()
+            ? this.logger.log("Paypal Touch listener added successfully")
+            : this.logger.log("Failed to add Paypal Touch listener");
     }
     addDAF() {
+        this.logger.log("DAF Digital Wallet detected");
         this.addOptionToPaymentTypeField("daf", "Donor Advised Fund");
         engrid_ENGrid.setBodyData("payment-type-option-daf", "true");
+        this.addDAFListener()
+            ? this.logger.log("DAF listener added successfully")
+            : this.logger.log("Failed to add DAF listener");
     }
     addOptionToPaymentTypeField(value, label) {
         const paymentTypeField = document.querySelector('[name="transaction.paymenttype"]');
@@ -20471,13 +23752,37 @@ class DigitalWallets {
                     else if (walletType === "daf") {
                         this.addDAF();
                     }
-                    //Disconnect observer to prevent multiple additions
+                    //Disconnect observer and break loop to prevent multiple additions
                     observer.disconnect();
+                    break;
                 }
             }
         };
         const observer = new MutationObserver(callback);
         observer.observe(node, { childList: true, subtree: true });
+    }
+    addPaypalOneTouchListener() {
+        var _a, _b, _c, _d, _e;
+        const paypalTouch = (_d = (_c = (_b = (_a = window.EngagingNetworks) === null || _a === void 0 ? void 0 : _a.require) === null || _b === void 0 ? void 0 : _b._defined) === null || _c === void 0 ? void 0 : _c.enPaypalTouch) === null || _d === void 0 ? void 0 : _d.paypalTouch;
+        if (!((_e = paypalTouch === null || paypalTouch === void 0 ? void 0 : paypalTouch.library) === null || _e === void 0 ? void 0 : _e.Buttons)) {
+            this.logger.log("Paypal Touch library not found, cannot add listener");
+            return false;
+        }
+        const buttons = paypalTouch.library.Buttons.bind(paypalTouch.library);
+        paypalTouch.library.Buttons = (o) => buttons(Object.assign(Object.assign({}, o), { onClick: (d, a) => (this._form.dispatchIntentSubmit(),
+                o.onClick && o.onClick(d, a)) }));
+        paypalTouch.unloadButton && paypalTouch.unloadButton();
+        paypalTouch.loadButton && paypalTouch.loadButton();
+        return true;
+    }
+    addStripeDigitalWalletListener() {
+        var _a, _b, _c, _d, _e, _f;
+        return !!((_f = (_e = (_d = (_c = (_b = (_a = window.EngagingNetworks) === null || _a === void 0 ? void 0 : _a.require) === null || _b === void 0 ? void 0 : _b._defined) === null || _c === void 0 ? void 0 : _c.enStripeButtons) === null || _d === void 0 ? void 0 : _d.stripeButtons) === null || _e === void 0 ? void 0 : _e.paymentRequest) === null || _f === void 0 ? void 0 : _f.on("paymentmethod", this._form.dispatchIntentSubmit.bind(this._form)));
+    }
+    addDAFListener() {
+        const chariotButton = document.getElementById("chariot-button");
+        chariotButton === null || chariotButton === void 0 ? void 0 : chariotButton.addEventListener("click", this._form.dispatchIntentSubmit.bind(this._form));
+        return !!chariotButton;
     }
 }
 
@@ -21069,6 +24374,11 @@ class SupporterHub {
             return;
         this.logger.log("Enabled");
         this.watch();
+        this.preventDuplicateSubmits();
+        this.pageAltsAndArias();
+        if (engrid_ENGrid.getPageNumber() === 1) {
+            this.announceLoginResponses();
+        }
     }
     shoudRun() {
         return ("pageJson" in window &&
@@ -21087,8 +24397,24 @@ class SupporterHub {
                             if (overlay.classList.contains("en__hubOverlay") ||
                                 overlay.classList.contains("en__hubPledge__panels")) {
                                 this.logger.log("Overlay found");
-                                this.creditCardUpdate(node);
-                                this.amountLabelUpdate(node);
+                                this.creditCardUpdate(overlay);
+                                this.amountLabelUpdate(overlay);
+                                this.dialogAltsAndArias(overlay);
+                                this.accessibilityScan(overlay);
+                            }
+                        }
+                    });
+                    mutation.removedNodes.forEach((node) => {
+                        if (node.nodeName === "DIV") {
+                            const overlay = node;
+                            if (overlay.classList.contains("en__hubOverlay") ||
+                                overlay.classList.contains("en__hubPledge__panels")) {
+                                this.logger.log("Overlay removed");
+                                A11y.inertPage(false);
+                                const remainingOverlay = document.querySelector(".en__hubOverlay, .en__hubPledge__panels");
+                                if (remainingOverlay) {
+                                    A11y.inertPage(true, remainingOverlay);
+                                }
                             }
                         }
                     });
@@ -21105,7 +24431,238 @@ class SupporterHub {
         if (hubOverlay) {
             this.creditCardUpdate(hubOverlay);
             this.amountLabelUpdate(hubOverlay);
+            this.dialogAltsAndArias(hubOverlay);
+            this.accessibilityScan(hubOverlay);
         }
+    }
+    pageAltsAndArias() {
+        // Find every en__component--hubgadget and set role as button and aria-label as the span content of the component
+        document.querySelectorAll(".en__component--hubgadget").forEach((node) => {
+            const button = node;
+            const labelSpan = button.querySelector("span");
+            if (!labelSpan)
+                return;
+            const img = button.querySelector("img");
+            img === null || img === void 0 ? void 0 : img.setAttribute("aria-hidden", "true");
+            const slug = engrid_ENGrid.slugify(labelSpan.innerText);
+            const labelId = `hubgadget-label-${slug}`;
+            labelSpan.setAttribute("id", labelId);
+            button.setAttribute("aria-labelledby", labelId);
+            button.setAttribute("role", "button");
+            button.setAttribute("aria-controls", `huboverlay-${slug}`);
+            button.setAttribute("aria-haspopup", "dialog");
+            if (!button.classList.contains("en__component--hubgadget--inactive")) {
+                button.setAttribute("tabindex", "0");
+                button.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        button.click();
+                    }
+                });
+            }
+        });
+        const emailField = document.querySelector('.en__field--hublogin');
+        if (emailField) {
+            const label = emailField.querySelector('label');
+            const input = emailField.querySelector('input');
+            if (label && input) {
+                const slug = engrid_ENGrid.slugify(label.innerText);
+                const labelId = `hublogin-label-${slug}`;
+                label.setAttribute("id", labelId);
+                input.setAttribute("aria-labelledby", labelId);
+            }
+        }
+    }
+    /**
+     * The Supporter Hub login form shows success / failure / loading messages by
+     * toggling the inline `display` on static `.en__hubgadget__response` divs.
+     * Wire the login body up to the shared response announcer.
+     */
+    announceLoginResponses() {
+        const body = document.querySelector(".en__supporterHubLogin__body");
+        if (!body)
+            return;
+        const emailInput = body.querySelector(".en__field--hublogin input");
+        const emailField = emailInput === null || emailInput === void 0 ? void 0 : emailInput.closest(".en__field--hublogin");
+        // Login failures are about the email field: flag it invalid and point AT at
+        // the alert describing why. This is login-specific, so it lives here rather
+        // than in the shared announcer.
+        this.announceHubResponses(body, {
+            onResult: (isFailure, alertRegionId) => {
+                if (emailInput) {
+                    if (isFailure) {
+                        emailInput.setAttribute("aria-invalid", "true");
+                        emailInput.setAttribute("aria-describedby", alertRegionId);
+                    }
+                    else {
+                        emailInput.removeAttribute("aria-invalid");
+                        emailInput.removeAttribute("aria-describedby");
+                    }
+                }
+                emailField === null || emailField === void 0 ? void 0 : emailField.classList.toggle("en__field--validationFailed", isFailure);
+            },
+        });
+    }
+    /**
+     * Mirror `.en__hubgadget__response` messages within `container` into screen
+     * reader live regions. Engaging Networks owns these responses, and assistive
+     * tech doesn't reliably announce content that was already in the DOM and
+     * merely flipped to visible — and in hub overlays the responses don't even
+     * exist until a submit injects them.
+     *
+     * We append a polite (`role="status"`) and an assertive (`role="alert"`) live
+     * region, hide the originals from AT, then on any childList / display / class
+     * change we debounce and announce whichever response is currently visible,
+     * preferring a terminal result over the transient "Loading" so an instant
+     * failure isn't preceded by a stray "Loading". Failures (and, for overlays,
+     * all messages) use the assertive region; everything else uses the polite one.
+     *
+     * This is a form-agnostic engine: callers supply their own side effects via
+     * `onResult` rather than this method knowing about any specific form.
+     *
+     * @param container The element that holds (or will hold) the responses.
+     * @param options   `preferAssertive` announces success assertively too —
+     *                  overlays redraw their content (and shift focus) on success,
+     *                  which makes screen readers drop polite announcements, so
+     *                  assertive ones are used to survive that. `onResult` is fired
+     *                  with each settled result (and the assertive region's id) so
+     *                  callers can react — e.g. the login form flags its email
+     *                  field invalid — without baking that into the engine.
+     */
+    announceHubResponses(container, options = {}) {
+        var _a;
+        const { preferAssertive = false, onResult } = options;
+        // Guard against wiring the same container up twice.
+        if (container.dataset.engridResponseAnnounce === "true")
+            return;
+        container.dataset.engridResponseAnnounce = "true";
+        // The overlay popup is an `aria-modal="true"` dialog, which tells assistive
+        // tech to ignore everything outside it. Live regions appended to the outer
+        // .en__hubOverlay (a sibling of the dialog) are therefore never announced.
+        // Anchor the regions inside the dialog so they live within the modal scope.
+        // Falls back to the container itself for the non-modal login form.
+        const regionAnchor = (_a = container.querySelector(".en__hubOverlay__popup")) !== null && _a !== void 0 ? _a : container;
+        const makeRegion = (assertive) => {
+            const region = document.createElement("div");
+            region.setAttribute("role", assertive ? "alert" : "status");
+            region.setAttribute("aria-atomic", "true");
+            region.classList.add("engrid__sr-only");
+            return regionAnchor.appendChild(region);
+        };
+        const politeRegion = makeRegion(false);
+        const assertiveRegion = makeRegion(true);
+        assertiveRegion.id = `en__hubgadget__response--failure-alert-${Math.random()
+            .toString(36)
+            .slice(2, 7)}`;
+        const isVisible = (el) => window.getComputedStyle(el).display !== "none";
+        // The live regions own announcements; hide the originals so each message is
+        // read once rather than twice. Responses can be injected after the fact
+        // (overlays), so re-hide on every pass, but only write when needed to avoid
+        // retriggering our own observer.
+        const hideResponses = () => {
+            container
+                .querySelectorAll(".en__hubgadget__response")
+                .forEach((r) => {
+                if (r.getAttribute("aria-hidden") !== "true") {
+                    r.setAttribute("aria-hidden", "true");
+                }
+            });
+        };
+        // Clear then set on the next frame so the screen reader registers a fresh
+        // change even when the same message is re-stated after a content redraw.
+        const speak = (region, text) => {
+            region.textContent = "";
+            window.requestAnimationFrame(() => {
+                region.textContent = text;
+            });
+        };
+        let lastAnnounced = "";
+        // Set when a response node is added/removed (i.e. the overlay redrew its
+        // content). A polite announcement made mid-redraw gets dropped, so we must
+        // re-state the message once things settle even if the text is unchanged.
+        let forceReannounce = false;
+        const announce = () => {
+            var _a;
+            hideResponses();
+            const responses = Array.from(container.querySelectorAll(".en__hubgadget__response"));
+            const visible = responses.filter(isVisible);
+            const target = (_a = visible.find((r) => !r.classList.contains("en__hubgadget__response--loading"))) !== null && _a !== void 0 ? _a : visible[0];
+            const message = target ? (target.textContent || "").trim() : "";
+            const isFailure = !!(target === null || target === void 0 ? void 0 : target.classList.contains("en__hubgadget__response--failure"));
+            const reannounce = forceReannounce;
+            forceReannounce = false;
+            if (message === lastAnnounced && !reannounce)
+                return;
+            lastAnnounced = message;
+            if (!message) {
+                politeRegion.textContent = "";
+                assertiveRegion.textContent = "";
+                onResult === null || onResult === void 0 ? void 0 : onResult(false, assertiveRegion.id);
+                return;
+            }
+            this.logger.log(`Announcing hub response: ${message}`);
+            // Overlays must announce assertively (polite is dropped on their content
+            // redraw); the login form keeps polite for non-failures.
+            const useAssertive = isFailure || preferAssertive;
+            if (useAssertive) {
+                politeRegion.textContent = "";
+                speak(assertiveRegion, message);
+            }
+            else {
+                assertiveRegion.textContent = "";
+                speak(politeRegion, message);
+            }
+            onResult === null || onResult === void 0 ? void 0 : onResult(isFailure, assertiveRegion.id);
+        };
+        // Only react to mutations that actually involve a response. The container
+        // (especially an overlay) is full of unrelated churn — form fields, the
+        // loading spinner, the a11y error regions — and our own live-region writes
+        // are children of it too. Reacting to all of that would perpetually reset
+        // the debounce and drown out the real announcement.
+        const isResponse = (node) => node instanceof HTMLElement &&
+            (node.classList.contains("en__hubgadget__response") ||
+                !!node.querySelector(".en__hubgadget__response"));
+        const isRelevant = (record) => {
+            if (record.type === "childList") {
+                return (Array.from(record.addedNodes).some(isResponse) ||
+                    Array.from(record.removedNodes).some(isResponse));
+            }
+            // attribute (style/class) change directly on a response element
+            return (record.target instanceof HTMLElement &&
+                record.target.classList.contains("en__hubgadget__response"));
+        };
+        let debounce = 0;
+        new MutationObserver((records) => {
+            const relevant = records.filter(isRelevant);
+            if (!relevant.length)
+                return;
+            // A response node being added/removed means the content was redrawn;
+            // force a re-announcement so a message dropped mid-redraw is re-stated.
+            if (relevant.some((r) => r.type === "childList")) {
+                forceReannounce = true;
+            }
+            window.clearTimeout(debounce);
+            debounce = window.setTimeout(announce, 250);
+        }).observe(container, {
+            attributes: true,
+            attributeFilter: ["style", "class"],
+            childList: true,
+            subtree: true,
+        });
+        announce(); // catch any response already visible at setup
+    }
+    /**
+     * Run the field-level accessibility scan and response announcer against a
+     * freshly opened overlay. EN injects overlay markup (and its fields) when the
+     * gadget is clicked, so A11y's constructor-time sweep never sees them. The
+     * scan is idempotent and the announcer guards against double-wiring, so a
+     * delayed pass — matching the timing of the other overlay handlers — is safe.
+     */
+    accessibilityScan(overlay) {
+        window.setTimeout(() => {
+            A11y.scanFields(overlay);
+            this.announceHubResponses(overlay, { preferAssertive: true });
+        }, 300);
     }
     creditCardUpdate(overlay) {
         window.setTimeout(() => {
@@ -21132,6 +24689,62 @@ class SupporterHub {
                 });
             }
         }, 300);
+    }
+    dialogAltsAndArias(overlay) {
+        window.setTimeout(() => {
+            const hubOverlay = overlay.classList.contains("en__hubOverlay")
+                ? overlay
+                : document.querySelector(".en__hubOverlay") ||
+                    overlay;
+            A11y.inertPage(true, hubOverlay);
+            const header = overlay.querySelector(".en__hubOverlay__header"), closeButton = header.querySelector("a");
+            // Tag close button
+            if (header && closeButton) {
+                closeButton.setAttribute("role", "button");
+                closeButton.setAttribute("aria-label", "Close");
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "Escape") {
+                        this.logger.log("Escape key pressed, closing overlay");
+                        closeButton.click();
+                    }
+                }, { once: true });
+            }
+            // Tag header and label dialog
+            const headerTitle = header.querySelector("h2");
+            const slug = engrid_ENGrid.slugify((headerTitle === null || headerTitle === void 0 ? void 0 : headerTitle.innerText) || "supporter-hub-overlay");
+            let headerTitleId = `huboverlay-title-${slug}`;
+            if (headerTitle) {
+                headerTitleId = headerTitle.id || headerTitleId;
+                headerTitle.setAttribute("id", headerTitleId);
+            }
+            const popup = overlay.querySelector(".en__hubOverlay__popup");
+            if (popup) {
+                popup.setAttribute("id", `huboverlay-${slug}`);
+                popup.setAttribute("role", "dialog");
+                popup.setAttribute("aria-modal", "true");
+                if (headerTitle) {
+                    popup.setAttribute("aria-labelledby", headerTitleId);
+                }
+                else {
+                    popup.setAttribute("aria-label", "Supporter Hub Overlay");
+                }
+            }
+        }, 300);
+    }
+    // The supporter hub does not properly handle or prevent duplicate submits, so we add a listener to prevent this.
+    preventDuplicateSubmits() {
+        document.addEventListener("click", (e) => {
+            const btn = e.target.closest(".en__submit button");
+            if (!btn)
+                return;
+            if (btn.dataset.busy) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                return;
+            }
+            btn.dataset.busy = "true";
+            setTimeout(() => delete btn.dataset.busy, 10000);
+        }, true);
     }
 }
 
@@ -21428,6 +25041,8 @@ class Modal {
             closeButtonLabel: "Okay!",
             customClass: "",
             showCloseX: true,
+            closeOnEsc: true,
+            onDismiss: () => { },
         };
         this.focusTrapHandler = (e) => {
             const modalElement = this.modal;
@@ -21451,6 +25066,11 @@ class Modal {
                     e.preventDefault();
                     firstFocusable.focus();
                 }
+            }
+        };
+        this.escKeyHandler = (e) => {
+            if (e.key === "Escape" && this.options.closeOnEsc) {
+                this.dismiss();
             }
         };
         this.options = Object.assign(Object.assign({}, this.defaultOptions), options);
@@ -21503,7 +25123,7 @@ class Modal {
             button.classList.add("engrid-modal__button");
             button.textContent = this.options.closeButtonLabel;
             button.addEventListener("click", () => {
-                this.close();
+                this.dismiss();
             });
             modalBody === null || modalBody === void 0 ? void 0 : modalBody.appendChild(button);
         }
@@ -21513,13 +25133,13 @@ class Modal {
         var _a, _b, _c, _d, _e;
         // Close event on top X
         (_b = (_a = this.modal) === null || _a === void 0 ? void 0 : _a.querySelector(".engrid-modal__close")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", () => {
-            this.close();
+            this.dismiss();
         });
         // Bounce scale when clicking outside of modal
         (_d = (_c = this.modal) === null || _c === void 0 ? void 0 : _c.querySelector(".engrid-modal__overlay")) === null || _d === void 0 ? void 0 : _d.addEventListener("click", (event) => {
             if (event.target === event.currentTarget) {
                 if (this.options.onClickOutside === "close") {
-                    this.close();
+                    this.dismiss();
                 }
                 else if (this.options.onClickOutside === "bounce") {
                     const modal = document.querySelector(".engrid-modal");
@@ -21535,25 +25155,37 @@ class Modal {
         const closeEls = (_e = this.modal) === null || _e === void 0 ? void 0 : _e.querySelectorAll(".modal__close");
         closeEls === null || closeEls === void 0 ? void 0 : closeEls.forEach((el) => {
             el.addEventListener("click", () => {
-                this.close();
+                this.dismiss();
             });
         });
     }
+    /**
+     * Generic entry point for dismissing the modal.
+     * Fires the onDismiss callback before closing, so consumers can react to the modal being
+     * dismissed rather than closed via their own explicit button logic.
+     */
+    dismiss() {
+        var _a, _b;
+        (_b = (_a = this.options).onDismiss) === null || _b === void 0 ? void 0 : _b.call(_a);
+        this.close();
+    }
     open() {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         engrid_ENGrid.setBodyData("has-lightbox", "true");
         (_a = this.modal) === null || _a === void 0 ? void 0 : _a.classList.remove("modal--hidden");
         (_b = this.modal) === null || _b === void 0 ? void 0 : _b.removeAttribute("aria-hidden");
         const container = (_c = this.modal) === null || _c === void 0 ? void 0 : _c.querySelector(".engrid-modal__container");
         container === null || container === void 0 ? void 0 : container.focus({ preventScroll: true });
         (_d = this.modal) === null || _d === void 0 ? void 0 : _d.addEventListener("keydown", this.focusTrapHandler);
+        (_e = this.modal) === null || _e === void 0 ? void 0 : _e.addEventListener("keydown", this.escKeyHandler);
     }
     close() {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         engrid_ENGrid.setBodyData("has-lightbox", false);
         (_a = this.modal) === null || _a === void 0 ? void 0 : _a.classList.add("modal--hidden");
         (_b = this.modal) === null || _b === void 0 ? void 0 : _b.setAttribute("aria-hidden", "true");
         (_c = this.modal) === null || _c === void 0 ? void 0 : _c.removeEventListener("keydown", this.focusTrapHandler);
+        (_d = this.modal) === null || _d === void 0 ? void 0 : _d.removeEventListener("keydown", this.escKeyHandler);
     }
     getModalContent() {
         return "<h1>Default Modal Content</h1>";
@@ -22698,13 +26330,16 @@ class ThankYouPageConditionalContent {
             state.forEach((item) => {
                 this.logger.log("Processing TY page conditional content item:", item);
                 if (engrid_ENGrid.getPageID() === item.page) {
+                    const inputValue = item.value.replace(/\W/g, "");
+                    const classPrefix = CSS.escape(item.class);
+                    const selectedClass = CSS.escape(`${item.class}${inputValue}`);
                     document
-                        .querySelectorAll(`[class*="${item.class}"]`)
+                        .querySelectorAll(`[class*="${classPrefix}"]`)
                         .forEach((el) => {
                         el.classList.add("hide");
                     });
                     document
-                        .querySelectorAll(`.${item.class}${item.value}`)
+                        .querySelectorAll(`.${selectedClass}`)
                         .forEach((el) => {
                         el.classList.remove("hide");
                     });
@@ -22756,6 +26391,7 @@ class CheckboxLabel {
 ;// ./node_modules/@4site/engrid-scripts/dist/optin-ladder.js
 /* unused harmony import specifier */ var optin_ladder_EngridLogger;
 /* unused harmony import specifier */ var optin_ladder_EnForm;
+/* unused harmony import specifier */ var optin_ladder_DataLayer;
 /* unused harmony import specifier */ var optin_ladder_ENGrid;
 /**
  * Docs: https://engrid.4sitestudios.com/component/optin-ladder
@@ -22770,14 +26406,18 @@ class OptInLadder {
     constructor() {
         this.logger = new optin_ladder_EngridLogger("OptInLadder", "lightgreen", "darkgreen", "✔");
         this._form = optin_ladder_EnForm.getInstance();
+        this._dataLayer = optin_ladder_DataLayer.getInstance();
         if (!this.inIframe()) {
             this.runAsParent();
         }
-        else if (optin_ladder_ENGrid.getPageNumber() === 1) {
-            this.runAsChildRegular();
-        }
         else {
-            this.runAsChildThankYou();
+            this.listenForParentInfo();
+            if (optin_ladder_ENGrid.getPageNumber() === 1) {
+                this.runAsChildRegular();
+            }
+            else {
+                this.runAsChildThankYou();
+            }
         }
     }
     runAsParent() {
@@ -22823,6 +26463,17 @@ class OptInLadder {
                 return;
             }
             placement.appendChild(iframe);
+            iframe.addEventListener("load", () => {
+                var _a;
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        type: "engrid-optin-ladder-parent-info",
+                        pageID: optin_ladder_ENGrid.getPageID(),
+                        pageName: ((_a = window === null || window === void 0 ? void 0 : window.pageJson) === null || _a === void 0 ? void 0 : _a.pageName) || "",
+                        pageType: optin_ladder_ENGrid.getPageType(),
+                    }, "*");
+                }
+            });
         }
         else {
             // Grab all the checkboxes with the name starting with "supporter.questions"
@@ -22842,6 +26493,7 @@ class OptInLadder {
         }
     }
     runAsChildRegular() {
+        var _a;
         if (!this.isEmbeddedThankYouPage()) {
             this.logger.log("Not Embedded on a Thank You Page");
             return;
@@ -22865,6 +26517,8 @@ class OptInLadder {
         let totalSteps = optInHeaders.length;
         let currentHeader = null;
         let currentFormBlock = null;
+        let submissionCount = Number(sessionStorage.getItem("engrid.optin-ladder-submission-count")) ||
+            0;
         for (let i = 0; i < optInHeaders.length; i++) {
             const header = optInHeaders[i];
             // Get the optin number from the .optin-ladder-XXXX class
@@ -22927,8 +26581,23 @@ class OptInLadder {
         });
         // Save the current step to sessionStorage
         this.saveStepToSessionStorage(currentStep, totalSteps);
+        if (!this.isFollowupStep()) {
+            this._dataLayer.pushVariable("ENGRID_OPTIN_LADDER_FIRST_STEP_ID", ((_a = currentHeader === null || currentHeader === void 0 ? void 0 : currentHeader.className.match(/optin-ladder-(\d+)/)) === null || _a === void 0 ? void 0 : _a[1]) || "");
+            this._dataLayer.pushVariable("ENGRID_OPTIN_LADDER_FIRST_STEP_NAME", (currentHeader === null || currentHeader === void 0 ? void 0 : currentHeader.innerText.trim()) || "");
+        }
         // On form submit, save the checkbox values to sessionStorage
         this._form.onSubmit.subscribe(() => {
+            var _a, _b;
+            submissionCount++;
+            this._dataLayer.pushEvent("ENGRID_OPTIN_LADDER_SUBMIT", {
+                opt_in_label: (_a = currentHeader === null || currentHeader === void 0 ? void 0 : currentHeader.innerText.trim()) !== null && _a !== void 0 ? _a : "Unknown",
+                opt_in_id: ((_b = currentHeader === null || currentHeader === void 0 ? void 0 : currentHeader.className.match(/optin-ladder-(\d+)/)) === null || _b === void 0 ? void 0 : _b[1]) || "",
+                opt_in_step: currentStep,
+                opt_in_total_steps: totalSteps,
+                submission_count: submissionCount,
+            });
+            this._dataLayer.pushVariable("ENGRID_OPTIN_LADDER_SUBMISSION_COUNT", submissionCount);
+            sessionStorage.setItem("engrid.optin-ladder-submission-count", submissionCount.toString());
             this.saveOptInsToSessionStorage("child");
             // Save the current step to sessionStorage
             currentStep++;
@@ -22980,6 +26649,16 @@ class OptInLadder {
             return true;
         }
     }
+    listenForParentInfo() {
+        window.addEventListener("message", (event) => {
+            var _a, _b, _c;
+            if (event.data && event.data.type === "engrid-optin-ladder-parent-info") {
+                this._dataLayer.pushVariable("ENGRID_OPTIN_LADDER_PARENT_ID", ((_a = event.data) === null || _a === void 0 ? void 0 : _a.pageID) || "");
+                this._dataLayer.pushVariable("ENGRID_OPTIN_LADDER_PARENT_NAME", ((_b = event.data) === null || _b === void 0 ? void 0 : _b.pageName) || "");
+                this._dataLayer.pushVariable("ENGRID_OPTIN_LADDER_PARENT_TYPE", ((_c = event.data) === null || _c === void 0 ? void 0 : _c.pageType) || "");
+            }
+        });
+    }
     saveStepToSessionStorage(step, totalSteps) {
         sessionStorage.setItem("engrid.optin-ladder", JSON.stringify({ step, totalSteps }));
         this.logger.log(`Saved step ${step} of ${totalSteps} to sessionStorage`);
@@ -23017,7 +26696,12 @@ class OptInLadder {
         const url = new URL(window.location.href);
         const path = url.pathname.split("/");
         path[path.length - 1] = String(page);
-        return url.origin + path.join("/") + (chain ? "?chain" : "");
+        url.pathname = path.join("/");
+        if (chain) {
+            url.searchParams.set("chain", "true");
+        }
+        url.searchParams.set("engrid_optin_ladder_followup", "true");
+        return url.toString();
     }
     getFirstPageUrl() {
         return this.getPageUrl(1, true);
@@ -23040,6 +26724,13 @@ class OptInLadder {
         sessionStorage.removeItem("engrid.optin-ladder");
         sessionStorage.removeItem("engrid.optin-ladder-stop");
         sessionStorage.removeItem("engrid.optin-ladder-persist-stop");
+        sessionStorage.removeItem("engrid.optin-ladder-submission-count");
+    }
+    isFollowupStep() {
+        const searchParams = new URLSearchParams(window.location.search);
+        const fromUrl = searchParams.get("engrid_optin_ladder_followup") === "true";
+        const fromStorage = Number(sessionStorage.getItem("engrid.optin-ladder-submission-count")) > 0;
+        return fromUrl || fromStorage;
     }
 }
 
@@ -23118,11 +26809,12 @@ class PostDonationEmbed {
  */
 
 class FrequencyUpsellModal extends Modal {
-    constructor(upsellOptions) {
+    constructor(upsellOptions, onDismiss) {
         super({
             onClickOutside: "bounce",
             customClass: `engrid--frequency-upsell-modal ${upsellOptions.customClass}`,
-            showCloseX: false,
+            showCloseX: upsellOptions.showCloseX,
+            onDismiss,
         });
         this._amountWithFees = 0;
         this._upsellAmountWithFees = 0;
@@ -23175,6 +26867,7 @@ class FrequencyUpsellModal extends Modal {
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/frequency-upsell.js
+// ! WE ARE PHASING OUT THIS COMPONENT IN FAVOR OF UPSELL-LIGHTBOX. PLEASE USE THAT COMPONENT FOR NEW IMPLEMENTATIONS.
 /*
  * FrequencyUpsell component which creates a modal to upsell the frequency of the donation
  * This is typically used to upsell a single donation into an annual donation, but the component
@@ -23199,7 +26892,7 @@ class FrequencyUpsell {
         }
         this.options = this.selectOptions(window.EngridFrequencyUpsell);
         this.logger.log("FrequencyUpsell initialized", this.options);
-        this.upsellModal = new FrequencyUpsellModal(this.options);
+        this.upsellModal = new FrequencyUpsellModal(this.options, () => this.handleModalDismiss());
         this.createFrequencyField();
         this.addEventListeners();
     }
@@ -23319,6 +27012,20 @@ class FrequencyUpsell {
             this._form.submit = true;
             return true;
         });
+    }
+    /**
+     * Handle the modal being dismissed via the X button, Esc key, or click-outside.
+     * This always counts as a decline (onDecline fires either way).
+     */
+    handleModalDismiss() {
+        this.logger.log("Frequency upsell modal dismissed (declined)");
+        this.options.onDecline();
+        if (this.options.submitOnClose) {
+            this._form.submitForm();
+        }
+        else {
+            this._form.dispatchError();
+        }
     }
     /**
      * Create the frequency field for the upsell, if it does not exist on the page already
@@ -23953,10 +27660,14 @@ class PreferredPaymentMethod {
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/version.js
-const AppVersion = "0.24.5";
+const AppVersion = "0.28.3";
 
 ;// ./node_modules/@4site/engrid-scripts/dist/index.js
  // Runs first so it can change the DOM markup before any markup dependent code fires
+
+
+
+
 
 
 
@@ -24053,15 +27764,959 @@ const AppVersion = "0.24.5";
 
 
 ;// ./src/scripts/main.js
-const customScript = function (App) {
+const customScript = function (App, EnForm) {
   console.log("ENGrid client scripts are executing");
   // Add your client scripts here
 
   App.setBodyData("client-js-loading", "finished");
 };
+// EXTERNAL MODULE: ./node_modules/smoothscroll-polyfill/dist/smoothscroll.js
+var smoothscroll = __webpack_require__(1196);
+var smoothscroll_default = /*#__PURE__*/__webpack_require__.n(smoothscroll);
+;// ./src/scripts/donation-lightbox-form.js
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const donation_lightbox_form_tippy = (__webpack_require__(9244)/* ["default"] */ .Ay);
+if (isSafari) {
+  window.__forceSmoothScrollPolyfill__ = true;
+}
+
+smoothscroll_default().polyfill();
+class DonationLightboxForm {
+  constructor(DonationAmount, DonationFrequency, App) {
+    if (!this.isIframe() || document.querySelector("body").dataset.engridSubtheme !== "multistep") return;
+    this.amount = DonationAmount;
+    this.frequency = DonationFrequency;
+    this.ipCountry = "";
+    this.isDonation = ["donation", "premiumgift"].includes(window.pageJson.pageType);
+    console.log("DonationLightboxForm: constructor");
+
+    // Adjust Email Tooltip
+    const emailTooltip = document.querySelector(".email-tooltip");
+    console.log(donation_lightbox_form_tippy, emailTooltip);
+    if (emailTooltip && donation_lightbox_form_tippy) {
+      const emailTooltipContent = emailTooltip.innerHTML;
+      // Replace the emailTooltip content with an i icon
+      emailTooltip.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width: 20px; height: 20px;">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd" />
+      </svg>
+    `;
+      // Move the tooltip block to the email field
+      const emailField = document.querySelector(".en__field--emailAddress");
+      if (emailField) {
+        emailField.appendChild(emailTooltip);
+      }
+      // Add the emailTooltip content to the tippy instance
+      donation_lightbox_form_tippy(emailTooltip, {
+        content: emailTooltipContent,
+        allowHTML: true,
+        arrow: true,
+        arrowType: "default",
+        placement: "top",
+        trigger: "click mouseenter focus",
+        interactive: true
+      });
+    }
+
+    // Each EN Row is a Section
+    this.sections = document.querySelectorAll("form.en__component > .en__component");
+    this.setCurrentSection(0);
+    // Check if we're on the Thank You page
+    if (pageJson.pageNumber === pageJson.pageCount) {
+      this.sendMessage("status", "loaded");
+      if (this.isDonation) this.sendMessage("status", "celebrate");
+      this.sendMessage("class", "thank-you");
+      document.querySelector("body").dataset.thankYou = "true";
+      // Get Query Strings
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("name")) {
+        let engrid = document.querySelector("#engrid");
+        if (engrid) {
+          let engridContent = engrid.innerHTML;
+          engridContent = engridContent.replace("{user_data~First Name}", urlParams.get("name"));
+          engridContent = engridContent.replace("{receipt_data~recurringFrequency}", urlParams.get("frequency"));
+          engridContent = engridContent.replace("{receipt_data~amount}", "$" + urlParams.get("amount"));
+          engrid.innerHTML = engridContent;
+          this.sendMessage("firstname", urlParams.get("name"));
+        }
+      } else {
+        // Try to get the first name
+        const thisClass = this;
+        const pageDataUrl = location.protocol + "//" + location.host + location.pathname + "/pagedata";
+        fetch(pageDataUrl).then(function (response) {
+          return response.json();
+        }).then(function (json) {
+          if (json.hasOwnProperty("firstName") && json.firstName !== null) {
+            thisClass.sendMessage("firstname", json.firstName);
+          } else {
+            thisClass.sendMessage("firstname", "Friend");
+          }
+        }).catch(error => {
+          console.error("PageData Error:", error);
+        });
+      }
+      return false;
+    }
+    if (!this.sections.length) {
+      // No section or no Donation Page was found
+      this.sendMessage("error", "No sections found");
+      return false;
+    }
+    console.log(this.sections);
+    if (this.isIframe()) {
+      // If iFrame
+      this.buildSectionNavigation();
+      // If Form Submission Failed
+      if (this.checkNested(EngagingNetworks, "require", "_defined", "enjs", "checkSubmissionFailed") && EngagingNetworks.require._defined.enjs.checkSubmissionFailed()) {
+        console.log("DonationLightboxForm: Submission Failed");
+        this.showHideDynamicSection(false);
+        window.setTimeout(() => {
+          if (this.validateForm()) {
+            // Front-End Validation Passed, get first Error Message
+            const error = document.querySelector("li.en__error");
+            if (error) {
+              // Check if error contains "problem processing" to send a smaller message
+              if (error.innerHTML.toLowerCase().indexOf("problem processing") > -1) {
+                this.sendMessage("error", "Sorry! There's a problem processing your donation.");
+                this.scrollToElement(document.querySelector(".en__field--ccnumber"));
+              } else {
+                this.sendMessage("error", error.textContent);
+              }
+              // Check if error contains "payment" or "account" and scroll to the right section
+              if (error.innerHTML.toLowerCase().indexOf("payment") > -1 || error.innerHTML.toLowerCase().indexOf("account") > -1) {
+                this.scrollToElement(document.querySelector(".en__field--ccnumber"));
+              } else if (error.innerHTML.toLowerCase().indexOf("routing") > -1 || error.innerHTML.toLowerCase().indexOf("account") > -1 || error.innerHTML.toLowerCase().indexOf("bank") > -1) {
+                this.scrollToElement(document.querySelector(".en__field--bankRoutingNumber"));
+              }
+            }
+          }
+        }, 100);
+      } else {
+        App.watchForError(() => {
+          const errorMessage = document.querySelector(".en__error");
+          const errorMessageText = errorMessage && errorMessage.textContent.split(". ").length > 1 ? errorMessage.textContent.split(". ")[1] : errorMessage.textContent;
+          if (errorMessageText) {
+            this.sendMessage("error", errorMessageText);
+          }
+        });
+      }
+      document.querySelectorAll("form.en__component input.en__field__input").forEach(e => {
+        e.addEventListener("focus", event => {
+          // Run after 50ms - We need this or else some browsers will disregard the scroll due to the focus event
+          const nextSectionId = Number(this.getSectionId(e));
+          const currentSectionId = Number(this.currentSectionId);
+          console.log("Focus on", nextSectionId, currentSectionId);
+          setTimeout(() => {
+            const focusIsOnNextSection = nextSectionId === currentSectionId + 1 || nextSectionId > currentSectionId + 1 && !this.isVisible(this.sections[currentSectionId + 1]);
+            if (focusIsOnNextSection && this.validateForm(currentSectionId)) {
+              // Only scroll if the current section doesn't have radio elements
+              const radioElement = this.sections[currentSectionId].querySelector(".en__field--radio");
+              if (!radioElement) this.scrollToElement(e);
+            }
+          }, 50);
+          // If the field is the credit card number, remove the error class from the parent
+          if ("id" in e && e.id === "en__field_transaction_ccnumber") {
+            const parent = e.closest(".en__field");
+            if (parent) {
+              parent.classList.remove("has-error");
+            }
+          }
+        });
+      });
+      // For TAB navigation, ensure the script will scroll to the focused element's section. So we will watch for the keydown event on the document.
+
+      document.addEventListener("keydown", event => {
+        if (event.keyCode === 9) {
+          const focusedElement = document.activeElement;
+          // If the focused element is not inside the form, return
+          if (!focusedElement.closest("form.en__component")) return;
+          console.log("Tabbed to", focusedElement);
+          const nextSectionId = Number(this.getSectionId(focusedElement));
+          const currentSectionId = Number(this.currentSectionId);
+          if (currentSectionId !== nextSectionId) {
+            event.preventDefault();
+            if (this.validateForm(currentSectionId)) {
+              this.scrollToSection(nextSectionId, currentSectionId);
+            }
+          }
+        }
+      });
+      // Map the enter key to the next button
+      document.querySelectorAll("form.en__component input.en__field__input").forEach(e => {
+        e.addEventListener("keydown", event => {
+          if (event.keyCode === 13) {
+            event.preventDefault();
+            const sectionId = Number(this.getSectionId(e));
+            if (this.validateForm(sectionId)) {
+              this.scrollToSection(sectionId + 1, sectionId);
+            }
+          }
+        });
+      });
+    }
+    let paymentOpts = document.querySelector(".payment-options");
+    if (paymentOpts) {
+      this.clickPaymentOptions(paymentOpts);
+    }
+    this.addTabIndexToLabels();
+    this.putArrowUpSVG();
+    this.bounceArrow(this.frequency.getInstance().frequency);
+    this.addEvents();
+    this.changeSubmitButton();
+    this.sendMessage("status", "loaded");
+    // Check if theres a color value in the url
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("color")) {
+      document.body.style.setProperty("--color_primary", urlParams.get("color"));
+    }
+    window.addEventListener("message", this.receiveMessage.bind(this), false);
+    this.sendMessage("isMobile");
+    this.showHideDynamicSection(false);
+    App.watchForError(() => {
+      this.sendMessage("status", "loaded");
+      if (this.validateForm(false, false)) {
+        // Front-End Validation Passed, get first Error Message
+        const error = document.querySelector("li.en__error");
+        if (error) {
+          // Check if error contains "processing" to send a smaller message
+          if (error.innerHTML.toLowerCase().indexOf("processing") > -1) {
+            this.sendMessage("error", "Sorry! There's a problem processing your donation.");
+            this.scrollToElement(document.querySelector(".en__field--ccnumber"));
+          } else {
+            this.sendMessage("error", error.textContent);
+          }
+          // Check if error contains "payment" or "account" and scroll to the right section
+          if (error.innerHTML.toLowerCase().indexOf("payment") > -1 || error.innerHTML.toLowerCase().indexOf("account") > -1 || error.innerHTML.toLowerCase().indexOf("card") > -1) {
+            this.scrollToElement(document.querySelector(".en__field--ccnumber"));
+          }
+        }
+      }
+    });
+  }
+  // Send iframe message to parent
+  sendMessage(key, value) {
+    const message = {
+      key: key,
+      value: value
+    };
+    window.parent.postMessage(message, "*");
+  }
+  // Receive iframe message from parent
+  receiveMessage(event) {
+    if (event.data.key === "isMobile" && event.data.value === true) {
+      document.body.classList.add("is-mobile");
+    }
+    if (event.data.key === "isMobile" && event.data.value === false) {
+      document.body.classList.remove("is-mobile");
+    }
+  }
+
+  // Check if is iFrame
+  isIframe() {
+    return window.self !== window.top;
+  }
+  // Build Section Navigation
+  buildSectionNavigation() {
+    console.log("DonationLightboxForm: buildSectionNavigation");
+    this.sections.forEach((section, key) => {
+      section.dataset.sectionId = key;
+      const sectionNavigation = document.createElement("div");
+      sectionNavigation.classList.add("section-navigation");
+      const sectionCount = document.createElement("div");
+      sectionCount.classList.add("section-count");
+      const sectionTotal = this.sections.length;
+      if (sectionTotal > 1) {
+        if (key == 0) {
+          sectionNavigation.innerHTML = `
+        <button class="section-navigation__next" data-section-id="${key}">
+          <span>Donate Today</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 14 14">
+              <path fill="currentColor" d="M7.687 13.313c-.38.38-.995.38-1.374 0-.38-.38-.38-.996 0-1.375L10 8.25H1.1c-.608 0-1.1-.493-1.1-1.1 0-.608.492-1.1 1.1-1.1h9.2L6.313 2.062c-.38-.38-.38-.995 0-1.375s.995-.38 1.374 0L14 7l-6.313 6.313z"/>
+          </svg>
+        </button>
+      `;
+        } else if (key == this.sections.length - 1) {
+          // Add Last Section Data Attribute
+          section.dataset.lastSection = true;
+          sectionNavigation.innerHTML = `
+        <button class="section-navigation__previous" aria-label="Back" data-section-id="${key}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
+              <path fill="currentColor" d="M7.214.786c.434-.434 1.138-.434 1.572 0 .433.434.433 1.137 0 1.571L4.57 6.572h10.172c.694 0 1.257.563 1.257 1.257s-.563 1.257-1.257 1.257H4.229l4.557 4.557c.433.434.433 1.137 0 1.571-.434.434-1.138.434-1.572 0L0 8 7.214.786z"/>
+          </svg>
+        </button>
+        <button class="section-navigation__submit" data-section-id="${key}" type="submit" data-label="Give $AMOUNT$FREQUENCY">
+          <span>Give Now</span>
+        </button>
+      `;
+        } else {
+          sectionNavigation.innerHTML = `
+        <button class="section-navigation__previous" aria-label="Back" data-section-id="${key}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
+              <path fill="currentColor" d="M7.214.786c.434-.434 1.138-.434 1.572 0 .433.434.433 1.137 0 1.571L4.57 6.572h10.172c.694 0 1.257.563 1.257 1.257s-.563 1.257-1.257 1.257H4.229l4.557 4.557c.433.434.433 1.137 0 1.571-.434.434-1.138.434-1.572 0L0 8 7.214.786z"/>
+          </svg>
+        </button>
+        <button class="section-navigation__next" data-section-id="${key}">
+          <span>Continue</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 14 14">
+              <path fill="currentColor" d="M7.687 13.313c-.38.38-.995.38-1.374 0-.38-.38-.38-.996 0-1.375L10 8.25H1.1c-.608 0-1.1-.493-1.1-1.1 0-.608.492-1.1 1.1-1.1h9.2L6.313 2.062c-.38-.38-.38-.995 0-1.375s.995-.38 1.374 0L14 7l-6.313 6.313z"/>
+          </svg>
+        </button>
+      `;
+        }
+        if (key + 1 < sectionTotal) {
+          sectionCount.innerHTML = `
+          <span class="section-count__current">${key + 1}</span> of
+          <span class="section-count__total">${sectionTotal}</span>
+        `;
+        }
+      } else {
+        // Single Section Pages
+        const submitButtonLabel = document.querySelector(".en__submit button")?.innerText || "Submit";
+        sectionNavigation.innerHTML = `
+        <button class="section-navigation__submit" data-section-id="${key}" type="submit" data-label="${submitButtonLabel}">
+          <span>${submitButtonLabel}</span>
+        </button>
+      `;
+      }
+      sectionNavigation.querySelector(".section-navigation__previous")?.addEventListener("click", e => {
+        e.preventDefault();
+        this.scrollToSection(key - 1, key);
+      });
+      sectionNavigation.querySelector(".section-navigation__next")?.addEventListener("click", e => {
+        e.preventDefault();
+        const ccnumberBlock = document.querySelector(".en__field--ccnumber");
+        const ccnumberSection = this.getSectionId(ccnumberBlock);
+        if (ccnumberSection == key) {
+          // Set payment type to credit card if we're on the credit card section
+          const paymentType = document.querySelector("#en__field_transaction_paymenttype");
+          paymentType.value = "card";
+          paymentType.dispatchEvent(new Event("change"));
+          // Uncheck other payment options
+          document.querySelectorAll(".en__field--giveBySelect input[type='radio']").forEach(el => {
+            el.checked = false;
+          });
+          this.showHideDynamicSection(true);
+        }
+        if (this.validateForm(key)) {
+          this.scrollToNextSection();
+        }
+      });
+      sectionNavigation.querySelector(".section-navigation__submit")?.addEventListener("click", e => {
+        e.preventDefault();
+        // Validate the entire form again
+        if (this.validateForm(false, this.isDonation)) {
+          if (this.isDonation) {
+            // Send Basic User Data to Parent
+            this.sendMessage("donationinfo", JSON.stringify({
+              name: document.querySelector("#en__field_supporter_firstName").value,
+              amount: EngagingNetworks.require._defined.enjs.getDonationTotal(),
+              frequency: this.frequency.getInstance().frequency
+            }));
+            // Only shows cortain if payment is not paypal
+            const paymentType = document.querySelector("#en__field_transaction_paymenttype").value;
+            if (paymentType != "paypal") {
+              this.sendMessage("status", "loading");
+            } else {
+              // If Paypal, submit the form on a new tab
+              const thisClass = this;
+              document.addEventListener("visibilitychange", function () {
+                if (document.visibilityState === "visible") {
+                  thisClass.sendMessage("status", "submitted");
+                } else {
+                  thisClass.sendMessage("status", "loading");
+                }
+              });
+              document.querySelector("form.en__component").target = "_blank";
+            }
+            if (this.checkNested(window.EngagingNetworks, "require", "_defined", "enDefaults", "validation", "_getSubmitPromise")) {
+              window.EngagingNetworks.require._defined.enDefaults.validation._getSubmitPromise().then(function () {
+                document.querySelector("form.en__component").submit();
+              });
+            } else {
+              document.querySelector("form.en__component").requestSubmit();
+            }
+          } else {
+            this.sendMessage("status", "loading");
+            document.querySelector("form.en__component").requestSubmit();
+          }
+        }
+      });
+      section.querySelector(".en__component").append(sectionNavigation);
+      section.querySelector(".en__component").append(sectionCount);
+    });
+    const digitalWallets = document.querySelector(".digital-wallets-wrapper");
+    if (digitalWallets) {
+      // Create a back link for digital wallets
+      const backLink = document.createElement("a");
+      backLink.classList.add("back-link");
+      backLink.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
+              <path fill="currentColor" d="M7.214.786c.434-.434 1.138-.434 1.572 0 .433.434.433 1.137 0 1.571L4.57 6.572h10.172c.694 0 1.257.563 1.257 1.257s-.563 1.257-1.257 1.257H4.229l4.557 4.557c.433.434.433 1.137 0 1.571-.434.434-1.138.434-1.572 0L0 8 7.214.786z"></path>
+          </svg>`;
+      backLink.href = "#";
+      backLink.addEventListener("click", e => {
+        e.preventDefault();
+        this.scrollToSection(this.getSectionId(digitalWallets) - 1, 0);
+      });
+      digitalWallets.prepend(backLink);
+    }
+  }
+  // Update section-count based on visible sections
+  updateSectionCount() {
+    console.log("DonationLightboxForm: updateSectionCount");
+    const visibleSections = Array.from(this.sections).filter(section => this.isVisible(section));
+    visibleSections.forEach((section, key) => {
+      const sectionCount = section.querySelector(".section-count");
+      const sectionCurrent = section.querySelector(".section-count__current");
+      const sectionTotal = section.querySelector(".section-count__total");
+      if (sectionCount && sectionCurrent && sectionTotal) {
+        sectionCurrent.innerHTML = key + 1;
+        sectionTotal.innerHTML = visibleSections.length;
+      }
+    });
+  }
+  // Scroll to a section
+  scrollToSection(sectionId, fromSectionId) {
+    console.log("DonationLightboxForm: scrollToSection", sectionId);
+    const section = document.querySelector(`[data-section-id="${sectionId}"]`);
+    // Check if we're scrolling to an invisible section
+    if (section && !this.isVisible(section)) {
+      console.log("DonationLightboxForm: scrollToSection: Section is not visible");
+      // If we're scrolling to a section that's not visible, check fromSectionId to see if we're scrolling left or right
+      if (fromSectionId > sectionId) {
+        // If we're scrolling left, scroll to the previous section
+        this.scrollToSection(sectionId - 1, sectionId);
+      } else {
+        // If we're scrolling right, scroll to the next section
+        this.scrollToSection(sectionId + 1, sectionId);
+      }
+      return;
+    }
+    if (this.sections[sectionId]) {
+      console.log(section);
+      this.setCurrentSection(sectionId);
+      console.log("Changed current section ID to", sectionId);
+      this.sections[sectionId].scrollIntoView({
+        behavior: "smooth"
+        // block: "start",
+        // inline: "center",
+      });
+    }
+  }
+  scrollToNextSection() {
+    console.log("DonationLightboxForm: scrollToNextSection", this.currentSectionId + 1);
+    this.scrollToSection(this.currentSectionId + 1, this.currentSectionId);
+  }
+  setCurrentSection(sectionId) {
+    this.currentSectionId = parseInt(sectionId);
+  }
+  // Scroll to an element's section
+  scrollToElement(element) {
+    if (element) {
+      const sectionId = this.getSectionId(element);
+      if (sectionId) {
+        const oldSectionId = this.currentSectionId;
+        this.setCurrentSection(sectionId);
+        console.log("Changed current section ID to", sectionId);
+        this.scrollToSection(sectionId, oldSectionId);
+      }
+    }
+  }
+  // Get Element's section id
+  getSectionId(element) {
+    if (element) {
+      return element.closest("[data-section-id]").dataset.sectionId;
+    }
+    return false;
+  }
+
+  // Validate the form
+  // checkCard was added to avoid checking the card if there was a server-side error (the card would be empty)
+  validateForm(sectionId = false, checkCard = true) {
+    const form = document.querySelector("form.en__component");
+
+    // Validate Frequency
+    const frequency = form.querySelector("[name='transaction.recurrfreq']:checked");
+    const frequencyBlock = form.querySelector(".en__field--recurrfreq");
+    const frequencySection = this.getSectionId(frequencyBlock);
+    if (this.isDonation) {
+      if (sectionId === false || sectionId == frequencySection) {
+        if (!frequency || !frequency.value) {
+          this.scrollToElement(form.querySelector("[name='transaction.recurrfreq']:checked"));
+          this.sendMessage("error", "Please select a frequency");
+          if (frequencyBlock) {
+            frequencyBlock.classList.add("has-error");
+          }
+          return false;
+        } else {
+          if (frequencyBlock) {
+            frequencyBlock.classList.remove("has-error");
+          }
+        }
+      }
+      // Validate Amount
+      const amount = EngagingNetworks.require._defined.enjs.getDonationTotal();
+      const amountBlock = form.querySelector(".en__field--donationAmt");
+      const amountSection = this.getSectionId(amountBlock);
+      if (sectionId === false || sectionId == amountSection) {
+        if (!amount || amount <= 0) {
+          this.scrollToElement(amountBlock);
+          this.sendMessage("error", "Please enter a valid amount");
+          if (amountBlock) {
+            amountBlock.classList.add("has-error");
+          }
+          return false;
+        } else {
+          if (amount < 5) {
+            this.sendMessage("error", "Amount must be at least $5 - Contact us for assistance");
+            if (amountBlock) {
+              amountBlock.classList.add("has-error");
+            }
+            return false;
+          }
+          if (amount > 30000) {
+            this.sendMessage("error", "Amount must be less than $30,000 - Contact us for assistance");
+            if (amountBlock) {
+              amountBlock.classList.add("has-error");
+            }
+            return false;
+          }
+          if (amountBlock) {
+            amountBlock.classList.remove("has-error");
+          }
+        }
+      }
+      // Validate Payment Method
+      const paymentType = form.querySelector("#en__field_transaction_paymenttype");
+      const ccnumber = form.querySelector("#en__field_transaction_ccnumber");
+      const ccnumberBlock = form.querySelector(".en__field--ccnumber");
+      const ccnumberSection = this.getSectionId(ccnumberBlock);
+      const isDigitalWalletPayment = ["paypal", "paypaltouch", "stripedigitalwallet", "daf"].includes(paymentType.value.toLowerCase());
+      const isBankPayment = paymentType.value.toLowerCase() === "ach";
+      console.log("DonationLightboxForm: validateForm", ccnumberBlock, ccnumberSection);
+      if (!isDigitalWalletPayment && !isBankPayment && (sectionId === false || sectionId == ccnumberSection) && checkCard) {
+        if (!paymentType || !paymentType.value) {
+          this.scrollToElement(paymentType);
+          this.sendMessage("error", "Please add your credit card information");
+          if (ccnumberBlock) {
+            ccnumberBlock.classList.add("has-error");
+          }
+          return false;
+        }
+        const ccValid = ccnumber instanceof HTMLInputElement ? !!ccnumber.value : ccnumber.classList.contains("vgs-collect-container__valid");
+        if (!ccValid) {
+          this.scrollToElement(ccnumber);
+          this.sendMessage("error", "Please enter a valid credit card number");
+          if (ccnumberBlock) {
+            ccnumberBlock.classList.add("has-error");
+          }
+          return false;
+        } else {
+          if (ccnumberBlock) {
+            ccnumberBlock.classList.remove("has-error");
+          }
+        }
+        const ccexpire = form.querySelector("#en__field_transaction_ccexpire");
+        const ccexpireBlock = form.querySelector(".en__field--ccexpire");
+        let ccexpireValid = ccexpire ? ccexpire.classList.contains("vgs-collect-container__valid") : false;
+        if (!ccexpireValid) {
+          this.scrollToElement(ccexpire);
+          this.sendMessage("error", "Please enter a valid expiration date");
+          if (ccexpireBlock) {
+            ccexpireBlock.classList.add("has-error");
+          }
+          return false;
+        } else {
+          if (ccexpireBlock) {
+            ccexpireBlock.classList.remove("has-error");
+          }
+        }
+        const cvv = form.querySelector("#en__field_transaction_ccvv");
+        const cvvBlock = form.querySelector(".en__field--ccvv");
+        const cvvValid = cvv instanceof HTMLInputElement ? !!cvv.value : cvv.classList.contains("vgs-collect-container__valid");
+        if (!cvvValid) {
+          this.scrollToElement(cvv);
+          this.sendMessage("error", "Please enter a valid CVV");
+          if (cvvBlock) {
+            cvvBlock.classList.add("has-error");
+          }
+          return false;
+        } else {
+          if (cvvBlock) {
+            cvvBlock.classList.remove("has-error");
+          }
+        }
+      }
+      // Validate Bank Details
+      if (paymentType && paymentType.value.toLowerCase() === "ach") {
+        const routingNumber = form.querySelector("#en__field_supporter_bankRoutingNumber");
+        if (!routingNumber) return;
+        const bankSection = this.getSectionId(routingNumber);
+        if (sectionId === false || sectionId == bankSection) {
+          // All form fields from this section are mandatory if the payment type is ACH
+          const mandatoryFields = this.sections[bankSection].querySelectorAll("input:not([type='hidden'])");
+          let hasError = false;
+          mandatoryFields.forEach(field => {
+            if (hasError) {
+              return;
+            }
+            const fieldElement = field;
+            const fieldLabel = field.closest(".en__field").querySelector(".en__field__label");
+            if (!fieldElement.value) {
+              this.scrollToElement(fieldElement);
+              this.sendMessage("error", "Please enter " + fieldLabel.textContent);
+              fieldElement.closest(".en__field").classList.add("has-error");
+              hasError = true;
+              return false;
+            } else if (fieldElement.type === "checkbox" && !fieldElement.checked) {
+              this.scrollToElement(fieldElement);
+              this.sendMessage("error", "Please check the agreement checkbox");
+              fieldElement.closest(".en__field").classList.add("has-error");
+              hasError = true;
+              return false;
+            } else {
+              fieldElement.closest(".en__field").classList.remove("has-error");
+            }
+          });
+          if (hasError) {
+            return false;
+          }
+        }
+      }
+    }
+
+    // Validate Everything else
+    const mandatoryFields = form.querySelectorAll(".en__mandatory");
+    let hasError = false;
+    mandatoryFields.forEach(field => {
+      if (hasError) {
+        return;
+      }
+      const fieldElement = field.querySelector(".en__field__input");
+      const fieldLabel = field.querySelector(".en__field__label");
+      const fieldSection = this.getSectionId(fieldElement);
+      if (sectionId === false || sectionId == fieldSection) {
+        if (!fieldElement.value) {
+          this.scrollToElement(fieldElement);
+          this.sendMessage("error", "Please enter " + fieldLabel.textContent);
+          field.classList.add("has-error");
+          hasError = true;
+          return false;
+        } else {
+          field.classList.remove("has-error");
+        }
+        // If it's the e-mail field, check if it's a valid email
+        if (fieldElement.name === "supporter.emailAddress" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fieldElement.value) === false) {
+          this.scrollToElement(fieldElement);
+          this.sendMessage("error", "Please enter a valid email address");
+          field.classList.add("has-error");
+          hasError = true;
+          return false;
+        }
+      }
+    });
+    if (hasError) {
+      return false;
+    }
+    // Validate City Characters Limit
+    const city = form.querySelector("#en__field_supporter_city");
+    const cityBlock = form.querySelector(".en__field--city");
+    if (!this.checkCharsLimit("#en__field_supporter_city", 100)) {
+      this.scrollToElement(city);
+      this.sendMessage("error", "This field only allows up to 100 characters");
+      if (cityBlock) {
+        cityBlock.classList.add("has-error");
+      }
+      return false;
+    } else {
+      if (cityBlock) {
+        cityBlock.classList.remove("has-error");
+      }
+    }
+    // Validate Street Address line 1 Characters Limit
+    const streetAddress1 = form.querySelector("#en__field_supporter_address1");
+    const streetAddress1Block = form.querySelector(".en__field--address1");
+    if (!this.checkCharsLimit("#en__field_supporter_address1", 35)) {
+      this.scrollToElement(streetAddress1);
+      this.sendMessage("error", "This field only allows up to 35 characters. Longer street addresses can be broken up between Lines 1 and 2.");
+      if (streetAddress1Block) {
+        streetAddress1Block.classList.add("has-error");
+      }
+      return false;
+    } else {
+      if (streetAddress1Block) {
+        streetAddress1Block.classList.remove("has-error");
+      }
+    }
+    // Validate Street Address line 2 Characters Limit
+    const streetAddress2 = form.querySelector("#en__field_supporter_address2");
+    const streetAddress2Block = form.querySelector(".en__field--address2");
+    if (!this.checkCharsLimit("#en__field_supporter_address2", 35)) {
+      this.scrollToElement(streetAddress2);
+      this.sendMessage("error", "This field only allows up to 35 characters. Longer street addresses can be broken up between Lines 1 and 2.");
+      if (streetAddress2Block) {
+        streetAddress2Block.classList.add("has-error");
+      }
+      return false;
+    } else {
+      if (streetAddress2Block) {
+        streetAddress2Block.classList.remove("has-error");
+      }
+    }
+    // Validate Zip Code Characters Limit
+    const zipCode = form.querySelector("#en__field_supporter_postcode");
+    const zipCodeBlock = form.querySelector(".en__field--postcode");
+    if (!this.checkCharsLimit("#en__field_supporter_postcode", 20)) {
+      this.scrollToElement(zipCode);
+      this.sendMessage("error", "This field only allows up to 20 characters");
+      if (zipCodeBlock) {
+        zipCodeBlock.classList.add("has-error");
+      }
+      return false;
+    } else {
+      if (zipCodeBlock) {
+        zipCodeBlock.classList.remove("has-error");
+      }
+    }
+
+    // Validate First Name Characters Limit
+    const firstName = form.querySelector("#en__field_supporter_firstName");
+    const firstNameBlock = form.querySelector(".en__field--firstName");
+    if (!this.checkCharsLimit("#en__field_supporter_firstName", 100)) {
+      this.scrollToElement(firstName);
+      this.sendMessage("error", "This field only allows up to 100 characters");
+      if (firstNameBlock) {
+        firstNameBlock.classList.add("has-error");
+      }
+      return false;
+    } else {
+      if (firstNameBlock) {
+        firstNameBlock.classList.remove("has-error");
+      }
+    }
+    // Validate Last Name Characters Limit
+    const lastName = form.querySelector("#en__field_supporter_lastName");
+    const lastNameBlock = form.querySelector(".en__field--lastName");
+    if (!this.checkCharsLimit("#en__field_supporter_lastName", 100)) {
+      this.scrollToElement(lastName);
+      this.sendMessage("error", "This field only allows up to 100 characters");
+      if (lastNameBlock) {
+        lastNameBlock.classList.add("has-error");
+      }
+      return false;
+    } else {
+      if (lastNameBlock) {
+        lastNameBlock.classList.remove("has-error");
+      }
+    }
+    console.log("DonationLightboxForm: validateForm PASSED");
+    return true;
+  }
+  checkCharsLimit(field, max) {
+    const fieldElement = document.querySelector(field);
+    if (fieldElement && fieldElement.value.length > max) {
+      return false;
+    }
+    return true;
+  }
+
+  // Bounce Arrow Up and Down
+  bounceArrow(freq) {
+    const arrow = document.querySelector(".monthly-upsell-message");
+    if (!arrow) return;
+    if (arrow && freq === "onetime") {
+      arrow.classList.add("bounce");
+      // setTimeout(() => {
+      //   arrow.classList.remove("bounce");
+      // }, 1000);
+    } else {
+      arrow.classList.remove("bounce");
+    }
+  }
+  changeSubmitButton() {
+    const submit = document.querySelector(".section-navigation__submit");
+    const amount = this.checkNested(window.EngagingNetworks, "require", "_defined", "enjs", "getDonationTotal") ? "$" + window.EngagingNetworks.require._defined.enjs.getDonationTotal() : null;
+    let frequency = this.frequency.getInstance().frequency;
+    let label = submit ? submit.dataset.label : "";
+    frequency = frequency === "onetime" ? "" : "<small>/mo</small>";
+    if (amount) {
+      label = label.replace("$AMOUNT", amount);
+      label = label.replace("$FREQUENCY", frequency);
+    } else {
+      label = label.replace("$AMOUNT", "");
+      label = label.replace("$FREQUENCY", "");
+    }
+    if (submit && label) {
+      submit.innerHTML = `<span>${label}</span>`;
+    }
+  }
+  clickPaymentOptions(opts) {
+    opts.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.preventDefault();
+        const paymentType = document.querySelector("#en__field_transaction_paymenttype");
+        if (paymentType) {
+          paymentType.value = btn.className.substr(15);
+          // Go to the next section
+          this.scrollToNextSection();
+        }
+      });
+    });
+  }
+  // Append arrow SVG to the monthly upsell message
+  putArrowUpSVG() {
+    const arrow = document.querySelector(".monthly-upsell-message");
+    if (arrow) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add(this.setArrowPosition());
+      svg.classList.add("monthly-upsell-message__arrow");
+      svg.setAttribute("viewBox", "0 0 55 40");
+      svg.setAttribute("fill", "none");
+      svg.innerHTML = `<path d="M.804 32.388c4.913-1.273 9.461-3.912 14.556-4.458 1-.09 1.183 1.183.728 1.73-.637.727-1.456 1.819-2.365 2.728 2.547.182 4.913 1.092 7.46 1.638 2.366.546 4.73.182 6.914-.637-.546-.546-1-1.183-1.546-1.82-3.64-5.185-5.914-22.198 3.548-23.38 5.368-.729 10.28 6.095 10.553 10.917.364 6.368-3.457 11.736-8.643 14.92 2.184 1.456 4.822 2.184 7.642 2.365 5.914.273 10.1-3.639 12.1-8.915 3.64-9.644.546-22.836-9.825-26.566-.455-.182-.455-.91.09-.91 13.01.182 14.83 19.56 11.555 28.567-3.73 10.28-16.012 12.464-23.745 6.46-.637.273-1.365.636-2.093.819-5.003 1.728-9.461-.728-14.283-1.274.637 1.183 1.273 2.456 2.183 3.548.637.819.091 2.184-1.091 1.82C9.628 38.483 4.624 37.392.44 34.39c-.637-.546-.637-1.82.364-2.002zm29.295 0c1.091-.636 2.183-1.364 3.093-2.183 6.277-5.277 7.187-15.103-.637-19.47-3.64-2.001-5.731 2.457-6.46 5.277-1.091 4.094-.454 8.825 1.274 12.646a19.738 19.738 0 0 0 2.73 3.73zm-19.652 1.183c-.09 0-.182-.182-.182-.273.273-1 1.092-1.82 2.002-2.638-2.911.819-5.64 2.092-8.552 3.002 2.73 1.456 5.732 2.365 8.825 3.275-.546-1-1-2.001-1.82-2.82-.182-.182-.273-.364-.273-.546z" fill="currentColor"/>`;
+      arrow.appendChild(svg);
+    }
+  }
+  // Return the arrow position
+  setArrowPosition() {
+    const frequencyWrapper = document.querySelector(".en__field--recurrfreq .en__field__element--radio");
+    if (frequencyWrapper) {
+      const left = frequencyWrapper.querySelector('.en__field__item:first-child input[value="MONTHLY"]');
+      const right = frequencyWrapper.querySelector('.en__field__item:last-child input[value="MONTHLY"]');
+      if (left) {
+        return "left";
+      }
+      if (right) {
+        return "right";
+      }
+    }
+    return null;
+  }
+  checkNested(obj, level, ...rest) {
+    if (obj === undefined) return false;
+    if (rest.length == 0 && obj.hasOwnProperty(level)) return true;
+    return this.checkNested(obj[level], ...rest);
+  }
+  // Add Tabindex to Labels
+  addTabIndexToLabels() {
+    const labels = document.querySelectorAll(".en__field__label.en__field__label--item");
+    labels.forEach(label => {
+      label.tabIndex = 0;
+    });
+  }
+  isVisible(element) {
+    return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+  }
+  addEvents() {
+    const feeCover = document.querySelector("#en__field_transaction_feeCover");
+    if (feeCover) {
+      feeCover.addEventListener("change", () => {
+        this.changeSubmitButton();
+      });
+    }
+    this.frequency.getInstance().onFrequencyChange.subscribe(s => this.bounceArrow(s));
+    this.frequency.getInstance().onFrequencyChange.subscribe(() => this.changeSubmitButton());
+    this.amount.getInstance().onAmountChange.subscribe(() => this.changeSubmitButton());
+    // Payment Type Radio Change
+    const paymentType = document.querySelectorAll("input[name='transaction.giveBySelect']");
+    if (paymentType.length) {
+      paymentType.forEach(item => {
+        item.addEventListener("change", () => {
+          this.showHideDynamicSection(item.value.toLowerCase());
+          if (item.value === "card") {
+            const paymentType = document.querySelector("#en__field_transaction_paymenttype");
+            if (paymentType) {
+              paymentType.value = "card";
+            }
+          }
+          console.log(`Payment type changed to: ${item.value.toLowerCase()}`);
+          window.setTimeout(() => {
+            this.scrollToNextSection();
+          }, 100);
+        });
+      });
+    }
+  }
+  // paymentType is any of the values from the giveBySelect radio buttons
+  // it can also be false, in which case it will try to get the value from the paymentType field
+  showHideDynamicSection(paymentType) {
+    let ptValue = paymentType;
+    if (!paymentType) {
+      const payment = document.querySelector("#en__field_transaction_paymenttype");
+      if (payment && ["visa", "mastercard", "amex", "discover", "diners", "jcb", "card"].includes(payment.value)) {
+        ptValue = "card";
+        // Check Card transaction.giveBySelect
+        const card = document.querySelector("[name='transaction.giveBySelect'][value='card']");
+        if (card) {
+          card.checked = true;
+          const event = new Event("change");
+          card.dispatchEvent(event);
+        }
+      } else {
+        ptValue = payment ? payment.value.toLowerCase() : null;
+        const giveBySelectItem = document.querySelector(`[name='transaction.giveBySelect'][value='${ptValue}']`);
+        if (giveBySelectItem) {
+          giveBySelectItem.checked = true;
+          const event = new Event("change");
+          giveBySelectItem.dispatchEvent(event);
+        }
+      }
+    }
+    // Get every element that has the CSS class giveBySelect-*
+    const giveBySelectItems = document.querySelectorAll("[class*='giveBySelect-']");
+    console.log(`Found ${giveBySelectItems.length} total giveBySelect- elements`);
+
+    // Create a Set of sections that have giveBySelect- elements (excluding those in digital-wallets-wrapper)
+    const sectionsWithGiveBySelect = new Set();
+    giveBySelectItems.forEach(item => {
+      // Skip if the element is inside digital-wallets-wrapper
+      if (item.closest(".digital-wallets-wrapper")) {
+        console.log(`Skipping giveBySelect- element in digital-wallets-wrapper: ${item.className}`);
+        return;
+      }
+      const section = this.getSectionId(item);
+      if (section !== false) {
+        sectionsWithGiveBySelect.add(section);
+        console.log(`Section ${section} has giveBySelect- element: ${item.className}`);
+      }
+    });
+    console.log(`Found ${sectionsWithGiveBySelect.size} sections with giveBySelect- elements`);
+
+    // First, handle sections without giveBySelect- elements
+    this.sections.forEach((section, sectionId) => {
+      if (!sectionsWithGiveBySelect.has(sectionId)) {
+        section.style.display = "block";
+        console.log(`Showing section ${sectionId} (no giveBySelect elements)`);
+      }
+    });
+
+    // Then, handle sections with giveBySelect- elements
+    sectionsWithGiveBySelect.forEach(sectionId => {
+      const section = this.sections[sectionId];
+      // Only get giveBySelect- elements that are not in digital-wallets-wrapper
+      const sectionItems = Array.from(section.querySelectorAll("[class*='giveBySelect-']")).filter(item => !item.closest(".digital-wallets-wrapper"));
+      console.log(`Section ${sectionId} has ${sectionItems.length} giveBySelect- elements (excluding digital-wallets-wrapper)`);
+      let shouldShow = false;
+      sectionItems.forEach(item => {
+        // Get the value of the class
+        let value = item.className.split("giveBySelect-")[1];
+        // Get the value until the next space
+        value = value.split(" ")[0];
+        console.log(`Checking giveBySelect- element in section ${sectionId}: ${value} against payment type: ${ptValue}`);
+        // If the value is the same as the payment type, show the section
+        if (value.toLowerCase() === ptValue) {
+          shouldShow = true;
+          console.log(`Match found for section ${sectionId}`);
+        }
+      });
+      section.style.display = shouldShow ? "block" : "none";
+      console.log(`${shouldShow ? "Showing" : "Hiding"} section ${sectionId} (payment type: ${ptValue})`);
+    });
+    this.updateSectionCount();
+  }
+}
 ;// ./src/index.ts
  // Uses ENGrid via NPM
 // import { Options, App } from "../../engrid/packages/scripts"; // Uses ENGrid via Visual Studio Workspace
+
 
 
 
@@ -24077,8 +28732,12 @@ const options = {
   SrcDefer: true,
   ProgressBar: true,
   Debug: App.getUrlParameter("debug") == "true" ? true : false,
-  onLoad: () => customScript(App),
-  onResize: () => console.log("Starter Theme Window Resized")
+  onLoad: () => {
+    window.DonationLightboxForm = DonationLightboxForm;
+    new DonationLightboxForm(DonationAmount, DonationFrequency, App);
+    customScript(App, EnForm);
+  },
+  onResize: () => {}
 };
 new App(options);
 })();
