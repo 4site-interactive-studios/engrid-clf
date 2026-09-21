@@ -1,4 +1,4 @@
-body[data-engrid-theme="engrid-clf"] {
+body[data-engrid-theme="clf"] {
   @import "./themes/clf";
   &[data-engrid-subtheme="multistep"] {
     @import "./themes/clf-multistep";

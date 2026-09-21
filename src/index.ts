@@ -13,6 +13,7 @@ import DonationLightboxForm from "./scripts/donation-lightbox-form";
 
 const options: Options = {
   applePay: false,
+  UseBodyBannerImageAsBackground: true,
   CapitalizeFields: true,
   ClickToExpand: true,
   CurrencySymbol: "$",

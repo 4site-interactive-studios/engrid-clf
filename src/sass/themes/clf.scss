@@ -1,10 +1,16 @@
 & {
+  --color_orangered: #b74c34;
+  --color_grey: rgb(166, 166, 166);
+  --page-radius: 0.4375rem;
   // TYPOGRAPHY DEFAULT
-  // --default_font-family: var(--native-fonts__sans-serif);
+  --default_font-family: "Roboto", var(--native-fonts__sans-serif);
   // --default_color: initial;
   // --default_font-size: var(--root_font-size);
   // --default_font-weight: initial;
   // --default_line-height: initial;
+  //
+  --engrid__body_margin: 0 35px;
+  --engrid__body-main_padding: 26px 29px 20px 29px;
 
   // TYPOGRAPHY H1
   // --h1_font-family: var(--default_font-family);
@@ -53,7 +59,21 @@
 
   // TYPOGRAPHY BUTTON
   // --button_font-family: var(--default_font-family);
-  // --button_color: var(--color_white);
+  --button_font-size: 16px;
+  --button_line-height: 22px;
+  --button_background-color: var(--color_white);
+  --button_color: var(--color_black);
+  --button_border-color: var(--color_grey);
+  --button_border-width: 1px;
+  --button_border-radius: 3px;
+  --button_background-color_checked: var(--color_orangered);
+  --button_color_checked: var(--color_white);
+  --button_background-color_hover: var(--button_background-color_checked);
+  --button_color_hover: var(--button_color_checked);
+  --button_padding: 0.85rem 1rem;
+
+  --submit__button_color: var(--color_white);
+  --submit__button_background-color: var(--color_orangered);
   // --button_font-size: var(--root_font-size);
   // --button_font-weight: initial;
   // --button_line-height: initial;
@@ -75,9 +95,86 @@
   // DONATION PAGE
   // --give-monthly-donation-amount-appended-label: "/mo";
   // --give-annual-donation-amount-appended-label: "/yr";
-  // --recurring-frequency__button_count: 4;
-  // --donation-amount__button_count: 4;
-  // --give-by-select__button_count: 4;
+  --recurring-frequency__button_count: 3;
+  --donation-amount__button_count: 3;
+  --give-by-select__button_count: 1;
+
+  --radio_background-color_hover: var(--color_orangered);
+  --checkbox_background-color_hover: var(--color_white);
+  --checkbox_border-color_checked: var(--color_orangered);
+  --checkbox_color_hover: var(--color_white);
+  --radio_box-shadow_selected: inset 0 0 0 6px var(--color_orangered);
+  --radio_background-color_selected: var(--color_white);
+
+  .page-alert,
+  .body-headerOutside,
+  .body-footer,
+  .body-footerOutside,
+  .content-footer,
+  .content-footerSpacer,
+  .content-preFooter,
+  .page-backgroundImageOverlay {
+    display: none !important;
+  }
+
+  .body-header {
+    margin-top: 2rem;
+    border-top-left-radius: var(--page-radius);
+    border-top-right-radius: var(--page-radius);
+
+    .logo {
+      max-width: 300px;
+    }
+  }
+  .body-bottom {
+    margin-bottom: 2rem;
+    border-bottom-left-radius: var(--page-radius);
+    border-bottom-right-radius: var(--page-radius);
+  }
+
+  .en__field--giveBySelect {
+    --button_background-color: var(--color_white);
+    --button_color: var(--color_black);
+    --button_border-color: var(--color_grey);
+    --button_border-width: 1px;
+    --button_background-color_hover: var(--color_sand);
+    --button_color_hover: var(--color_black);
+    --button_border-color_hover: var(--color_black);
+    --button_background-color_checked: var(--color_orangered);
+    --button_color_checked: var(--color_white);
+    --button_border-color_checked: transparent;
+    --button_font-weight: 500;
+    --button_font-size: 19px;
+    --button_line-height: 32px;
+
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    margin-top: 6px;
+
+    input:checked + label .google-pay,
+    input:checked + label .apple-pay,
+    input:checked + label .venmo,
+    input:checked + label .bank,
+    input:checked + label .daf {
+      filter: invert(100%);
+    }
+
+    label {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      gap: var(--spacing-4, 16px);
+      transition: background-color 0.35s ease;
+    }
+
+    label img {
+      width: auto;
+      margin: unset;
+      max-height: 28px;
+    }
+  }
 
   @mixin until-mobile-l {
     // STYLES
@@ -99,6 +196,47 @@
 
     @media (min-width: 426px) {
       @include from-mobile-l;
+    }
+  }
+
+  &[data-engrid-payment-type="ach"]:not(#en__pagebuilder):not([data-engrid-debug]) {
+    .showif-ach-selected {
+      display: block;
+    }
+
+    .hideif-ach-selected {
+      display: none;
+    }
+  }
+
+  &:not([data-engrid-payment-type="ach"]):not(#en__pagebuilder):not([data-engrid-debug]) {
+    .showif-ach-selected {
+      display: none;
+    }
+
+    .hideif-ach-selected {
+      display: block;
+    }
+  }
+
+  &[data-engrid-payment-type="paypal"],
+  &[data-engrid-payment-type="paypaltouch"] {
+    .showif-paypal-selected {
+      display: block;
+    }
+
+    .hideif-paypal-selected {
+      display: none;
+    }
+  }
+
+  &:not([data-engrid-payment-type="paypal"]):not([data-engrid-payment-type="paypaltouch"]) {
+    .showif-paypal-selected {
+      display: none;
+    }
+
+    .hideif-paypal-selected {
+      display: block;
     }
   }
 }

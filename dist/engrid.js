@@ -17,10 +17,10 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Thursday, September 3, 2026 @ 14:13:58 ET
+ *  Date: Monday, September 21, 2026 @ 13:21:01 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
- *  ENGrid scripts: v0.28.3
+ *  ENGrid scripts: v0.28.5
  *
  *  Created by 4Site Studios
  *  Come work with us or join our team, we would love to hear from you
@@ -11307,12 +11307,14 @@ class DonationAmount {
         // Load the current amount
         this.load();
     }
-    // The "other" radio is the one whose value isn't a numeric amount
-    // (EN renders it as value="other"), so it cleans to 0
+    // EN may render the "other" radio with a non-numeric or non-positive value
     isOtherAmountSelected() {
         const selectedAmount = document.querySelector(`input[name="${this._radios}"]:checked`);
-        return (selectedAmount !== null &&
-            engrid_ENGrid.cleanAmount(selectedAmount.value) === 0);
+        if (!selectedAmount) {
+            return false;
+        }
+        const amount = Number(selectedAmount.value);
+        return !Number.isFinite(amount) || amount <= 0;
     }
     syncOtherAmount(field, formatValue = false) {
         const otherIsSelected = this.isOtherAmountSelected();
@@ -19188,16 +19190,26 @@ class RememberMe {
         }
     }
     insertClearRememberMeLink() {
+        var _a;
         let clearRememberMeField = document.getElementById("clear-autofill-data");
+        const { html, hasInnerLink } = this.buildClearLabelMarkup();
         if (!clearRememberMeField) {
-            clearRememberMeField = document.createElement("a");
+            clearRememberMeField = document.createElement(hasInnerLink ? "span" : "a");
             clearRememberMeField.setAttribute("id", "clear-autofill-data");
-            clearRememberMeField.classList.add("label-tooltip");
-            clearRememberMeField.setAttribute("style", "cursor: pointer;");
-            clearRememberMeField.innerHTML = this.fieldClearLabel;
+            if (hasInnerLink) {
+                clearRememberMeField.classList.add("clear-autofill-data-wrapper");
+            }
+            else {
+                clearRememberMeField.classList.add("label-tooltip");
+                clearRememberMeField.setAttribute("style", "cursor: pointer;");
+            }
+            clearRememberMeField.innerHTML = html;
             const targetField = this.getElementByFirstSelector(this.fieldClearSelectorTarget);
             if (targetField) {
-                if (this.fieldClearSelectorTargetLocation === "after") {
+                if (this.fieldClearSelectorTargetLocation === "rightSide") {
+                    this.placeOnRightSide(targetField, clearRememberMeField);
+                }
+                else if (this.fieldClearSelectorTargetLocation === "after") {
                     targetField.appendChild(clearRememberMeField);
                 }
                 else {
@@ -19205,7 +19217,10 @@ class RememberMe {
                 }
             }
         }
-        clearRememberMeField.addEventListener("click", (e) => {
+        const clickTarget = hasInnerLink
+            ? (_a = clearRememberMeField.querySelector("#clear-autofill-data-link")) !== null && _a !== void 0 ? _a : clearRememberMeField
+            : clearRememberMeField;
+        const onClear = (e) => {
             e.preventDefault();
             this.clearFields(["supporter.country" /*, 'supporter.emailAddress'*/]);
             if (this.useRemote()) {
@@ -19224,9 +19239,53 @@ class RememberMe {
             this.rememberMeOptIn = false;
             this._events.dispatchClear();
             window.dispatchEvent(new CustomEvent("RememberMe_Cleared"));
-        });
+        };
+        clickTarget.addEventListener("click", onClear);
         this._events.dispatchLoad(true);
         window.dispatchEvent(new CustomEvent("RememberMe_Loaded", { detail: { withData: true } }));
+    }
+    escapeHtml(value) {
+        const map = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+        };
+        return value.replace(/[&<>"']/g, (c) => map[c]);
+    }
+    buildClearLabelMarkup() {
+        var _a;
+        const username = this.getUsernameFromFieldData();
+        const label = username
+            ? this.fieldClearLabel.replace(/\$username/g, () => this.escapeHtml(username))
+            : this.fieldClearLabel.replace(/[^\S\r\n]?\$username/g, "");
+        // Only the first non-empty {...} segment becomes the clickable clear link.
+        // Any additional {...} segments remain as literal text (braces included),
+        // and empty {} braces are left as-is. When no non-empty braces are present,
+        // the entire element is clickable (legacy behaviour).
+        const match = label.match(/\{([^}]+)\}/);
+        if (!match) {
+            return { html: label, hasInnerLink: false };
+        }
+        const before = label.slice(0, match.index);
+        const linkText = match[1];
+        const after = label.slice(((_a = match.index) !== null && _a !== void 0 ? _a : 0) + match[0].length);
+        const html = before +
+            `<a id="clear-autofill-data-link" class="label-tooltip" style="cursor: pointer;">${linkText}</a>` +
+            after;
+        return { html, hasInnerLink: true };
+    }
+    getUsernameFromFieldData() {
+        const value = this.fieldData["supporter.firstName"];
+        return value ? value.trim() : "";
+    }
+    getClearLabelPlainText() {
+        const username = this.getUsernameFromFieldData();
+        const label = username
+            ? this.fieldClearLabel.replace(/\$username/g, () => username)
+            : this.fieldClearLabel.replace(/[^\S\r\n]?\$username/g, "");
+        return label.replace(/\{([^}]*)\}/g, "$1");
     }
     getElementByFirstSelector(selectorsString) {
         // iterate through the selectors until we find one that exists
@@ -19240,13 +19299,76 @@ class RememberMe {
         }
         return targetField;
     }
+    placeOnRightSide(targetField, elementToPlace) {
+        const wrapperClass = "rememberme-right-side-wrapper";
+        let wrapper;
+        if (targetField.parentElement &&
+            targetField.parentElement.classList.contains(wrapperClass)) {
+            wrapper = targetField.parentElement;
+        }
+        else {
+            // Read the target's computed styles BEFORE moving it into the flex
+            // wrapper. Once inside a flex container, margin collapsing no longer
+            // applies and the reported values can change. We transfer the original
+            // margin-top to the wrapper itself so the block retains its vertical
+            // spacing in the document flow, and zero out the target's own margin-top
+            // so it doesn't double-apply inside the flex row.
+            const targetStyle = window.getComputedStyle(targetField);
+            const targetMarginTop = targetStyle.marginTop;
+            const targetMarginBottom = targetStyle.marginBottom;
+            wrapper = document.createElement("div");
+            wrapper.classList.add(wrapperClass);
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            wrapper.style.gap = "8px";
+            wrapper.style.flexWrap = "wrap";
+            // Transfer vertical margins from the target to the wrapper so the
+            // surrounding layout is unchanged after the DOM move.
+            wrapper.style.marginTop = targetMarginTop;
+            wrapper.style.marginBottom = targetMarginBottom;
+            if (targetField.parentNode) {
+                targetField.parentNode.insertBefore(wrapper, targetField);
+            }
+            // Zero out the target's own margin-top/-bottom now that the wrapper
+            // owns them, so they don't double-apply inside the flex row.
+            targetField.style.marginTop = "0px";
+            targetField.style.marginBottom = "0px";
+            wrapper.appendChild(targetField);
+        }
+        // Read padding-left AFTER the wrapper exists but before any alignment
+        // logic, so it reflects the current computed value.
+        const targetPaddingLeft = window.getComputedStyle(targetField).paddingLeft;
+        wrapper.appendChild(elementToPlace);
+        const applyAlignment = () => {
+            const wrapped = elementToPlace.offsetTop > targetField.offsetTop;
+            if (wrapped) {
+                // When wrapped below, left-align with the target's content area.
+                elementToPlace.style.marginTop = "0px";
+                elementToPlace.style.marginLeft = targetPaddingLeft;
+            }
+            else {
+                // When side-by-side, both items are already vertically centred by the
+                // flex container — no extra margin-top needed on elementToPlace.
+                elementToPlace.style.marginTop = "0px";
+                elementToPlace.style.marginLeft = "0px";
+            }
+        };
+        // Defer the first alignment check to the next animation frame so the
+        // browser has had a chance to perform layout. Without this, offsetTop on
+        // both elements is still 0 (or stale) at call time.
+        requestAnimationFrame(applyAlignment);
+        if (typeof window.ResizeObserver === "function") {
+            const observer = new window.ResizeObserver(() => applyAlignment());
+            observer.observe(wrapper);
+        }
+    }
     insertRememberMeOptin() {
         let rememberMeOptInField = document.getElementById("remember-me-opt-in");
         if (!rememberMeOptInField) {
             const rememberMeLabel = this.rememberMeLabel;
             const rememberMeInfo = engrid_ENGrid.t("rememberMe.tooltip", {
                 label: rememberMeLabel,
-                clearLabel: this.fieldClearLabel,
+                clearLabel: this.getClearLabelPlainText(),
             });
             const rememberMeOptInFieldChecked = this.rememberMeOptIn ? "checked" : "";
             const rememberMeOptInField = document.createElement("div");
@@ -19270,9 +19392,14 @@ class RememberMe {
 			`;
             const targetField = this.getElementByFirstSelector(this.fieldOptInSelectorTarget);
             if (targetField && targetField.parentNode) {
-                targetField.parentNode.insertBefore(rememberMeOptInField, this.fieldOptInSelectorTargetLocation == "before"
-                    ? targetField
-                    : targetField.nextSibling);
+                if (this.fieldOptInSelectorTargetLocation === "rightSide") {
+                    this.placeOnRightSide(targetField, rememberMeOptInField);
+                }
+                else {
+                    targetField.parentNode.insertBefore(rememberMeOptInField, this.fieldOptInSelectorTargetLocation == "before"
+                        ? targetField
+                        : targetField.nextSibling);
+                }
                 const rememberMeCheckbox = document.getElementById("remember-me-checkbox");
                 if (rememberMeCheckbox) {
                     rememberMeCheckbox.addEventListener("change", () => {
@@ -27660,7 +27787,7 @@ class PreferredPaymentMethod {
 }
 
 ;// ./node_modules/@4site/engrid-scripts/dist/version.js
-const AppVersion = "0.28.3";
+const AppVersion = "0.28.5";
 
 ;// ./node_modules/@4site/engrid-scripts/dist/index.js
  // Runs first so it can change the DOM markup before any markup dependent code fires
@@ -27767,7 +27894,42 @@ const AppVersion = "0.28.3";
 const customScript = function (App, EnForm) {
   console.log("ENGrid client scripts are executing");
   // Add your client scripts here
-
+  const giveBySelectWrapper = document.querySelector(".give-by-select-wrapper");
+  if (giveBySelectWrapper) {
+    // Find apple-pay class, set data-src to the apple pay image, and add the class "apple-pay-image"
+    const applePayElement = giveBySelectWrapper.querySelector("img.apple-pay");
+    if (applePayElement) {
+      applePayElement.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-applepay.svg?v=1780423619000");
+    }
+    const gPayElement = giveBySelectWrapper.querySelector("img.google-pay");
+    if (gPayElement) {
+      gPayElement.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-gpay.svg?v=1780423619000");
+    }
+    const payPalWhiteElement = giveBySelectWrapper.querySelectorAll("img.paypal-w");
+    for (const element of payPalWhiteElement) {
+      element.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-paypal-w.svg?v=1780423619000");
+    }
+    const payPalBlackElement = giveBySelectWrapper.querySelectorAll("img.paypal-b");
+    for (const element of payPalBlackElement) {
+      element.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-paypal-b.svg?v=1780423619000");
+    }
+    const dafPayElement = giveBySelectWrapper.querySelector("img.daf");
+    if (dafPayElement) {
+      dafPayElement.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-daf.svg?v=1780423619000");
+    }
+    const bankElement = giveBySelectWrapper.querySelector("img.bank");
+    if (bankElement) {
+      bankElement.setAttribute("src", "https://aaf18515da0e792f78-c27fdabe952dfc357fe25ebf5c8897ee.ssl.cf5.rackcdn.com/2184/payment-type-bank.svg?v=1780423619000");
+    }
+    const venmoElement = giveBySelectWrapper.querySelector("img.venmo");
+    if (venmoElement) {
+      venmoElement.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-venmo.svg?v=1780423619000");
+    }
+    const cardsElement = giveBySelectWrapper.querySelector("img.credit-card-logos");
+    if (cardsElement) {
+      cardsElement.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-cards.png?v=1780423619000");
+    }
+  }
   App.setBodyData("client-js-loading", "finished");
 };
 // EXTERNAL MODULE: ./node_modules/smoothscroll-polyfill/dist/smoothscroll.js
@@ -28722,6 +28884,7 @@ class DonationLightboxForm {
 
 const options = {
   applePay: false,
+  UseBodyBannerImageAsBackground: true,
   CapitalizeFields: true,
   ClickToExpand: true,
   CurrencySymbol: "$",
