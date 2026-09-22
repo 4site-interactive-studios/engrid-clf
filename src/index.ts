@@ -10,6 +10,7 @@ import {
 import "./sass/main.scss";
 import { customScript } from "./scripts/main";
 import DonationLightboxForm from "./scripts/donation-lightbox-form";
+import MultistepForm from "./scripts/multistep-form";
 
 const options: Options = {
   applePay: false,
@@ -27,6 +28,7 @@ const options: Options = {
   onLoad: () => {
     (<any>window).DonationLightboxForm = DonationLightboxForm;
     new DonationLightboxForm(DonationAmount, DonationFrequency, App);
+    new MultistepForm();
     customScript(App, EnForm);
   },
   onResize: () => {},
