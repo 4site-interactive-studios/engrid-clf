@@ -9,7 +9,9 @@
   // --default_font-weight: initial;
   // --default_line-height: initial;
   //
-  --engrid__body_margin: 0 35px;
+  @media screen and (min-width: 601px) {
+    --engrid__body_margin: 0 35px;
+  }
   --engrid__body-main_padding: 26px 29px 20px 29px;
 
   // TYPOGRAPHY H1
