@@ -602,11 +602,14 @@
       .en__submit {
         display: none;
       }
-      #en__digitalWallet {
+      .en__component--formblock:has(> #en__digitalWallet) {
         position: absolute;
-        bottom: 0px;
-        left: 63px;
-        width: calc(100% - 63px);
+        bottom: 4px;
+        right: 0px;
+        width: calc(100% - 47px);
+      }
+      .multistep-submit.multistep-button-container .btn-back {
+        height: 55px;
       }
     }
 
