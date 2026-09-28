@@ -1,5 +1,7 @@
 & {
   --color_orangered: #b74c34;
+  --error_color: var(--color_orangered);
+  --color_primary: var(--color_orangered);
   --color_grey: rgb(166, 166, 166);
   --page-radius: 0.4375rem;
   // TYPOGRAPHY DEFAULT
@@ -68,14 +70,14 @@
   --button_border-color: var(--color_grey);
   --button_border-width: 1px;
   --button_border-radius: 3px;
-  --button_background-color_checked: var(--color_orangered);
+  --button_background-color_checked: var(--color_primary);
   --button_color_checked: var(--color_white);
   --button_background-color_hover: var(--button_background-color_checked);
   --button_color_hover: var(--button_color_checked);
   --button_padding: 0.85rem 1rem;
 
   --submit__button_color: var(--color_white);
-  --submit__button_background-color: var(--color_orangered);
+  --submit__button_background-color: var(--color_primary);
   // --button_font-size: var(--root_font-size);
   // --button_font-weight: initial;
   // --button_line-height: initial;
@@ -101,11 +103,11 @@
   --donation-amount__button_count: 3;
   --give-by-select__button_count: 1;
 
-  --radio_background-color_hover: var(--color_orangered);
+  --radio_background-color_hover: var(--color_primary);
   --checkbox_background-color_hover: var(--color_white);
-  --checkbox_border-color_checked: var(--color_orangered);
+  --checkbox_border-color_checked: var(--color_primary);
   --checkbox_color_hover: var(--color_white);
-  --radio_box-shadow_selected: inset 0 0 0 6px var(--color_orangered);
+  --radio_box-shadow_selected: inset 0 0 0 6px var(--color_primary);
   --radio_background-color_selected: var(--color_white);
 
   .page-alert,
@@ -142,7 +144,7 @@
     --button_background-color_hover: var(--color_sand);
     --button_color_hover: var(--color_black);
     --button_border-color_hover: var(--color_black);
-    --button_background-color_checked: var(--color_orangered);
+    --button_background-color_checked: var(--color_primary);
     --button_color_checked: var(--color_white);
     --button_border-color_checked: transparent;
     --button_font-weight: 500;
@@ -243,10 +245,218 @@
   }
 
   &[data-engrid-multistep] {
+    --en-vgs-height: 46px;
+    --engrid__body-main_padding: 12px 20px 20px 20px;
+    --engrid__body-main_margin: 0;
+
+    --color_primary: #960f33;
+    --button_border-color: transparent;
+    --button_background-color: #f2f0f1;
+
+    --button_font-size: 18px;
+    --button_font-weight: 600;
+
+    --submit__button_font-size: 24px;
+
     --give-by-select__button_count: 1;
+
+    --fields_spacing-block: 7px;
+
+    --input_padding: 12px 16px 12px 16px;
+    --input_font-size: 18px;
+    --input_line-height: 100%;
+    --input_font-weight: 400;
+    --input_border-color: #2a2a2b;
+    --input_border-radius: 4px;
+    --input_background-color: #ffffff;
+    --input_placeholder-color: #696a6c;
+    --label_font-size: 14px;
+    --label_font-weight: 700;
+    --label_line-height: 100%;
+    --label_letter-spacing: 0.25px;
+
+    .body-main {
+      min-height: 550px;
+      position: relative;
+    }
+
+    .en__field--validationFailed .en__field__error {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    &[data-thank-you="true"] {
+      .body-main::before {
+        content: "";
+        top: 20px;
+        left: 20px;
+        width: calc(100% - 40px);
+        height: 1px;
+        background-color: var(--color_primary);
+        position: absolute;
+      }
+      .body-main::after {
+        content: "";
+        bottom: 20px;
+        left: 20px;
+        width: calc(100% - 40px);
+        height: 1px;
+        background-color: var(--color_primary);
+        position: absolute;
+      }
+    }
+
+    .form-header {
+      --h2_font-size: 16px;
+      --h2_line-height: 16px;
+      --h2_font-weight: 600;
+      h2 {
+        margin: 16px 0px;
+      }
+    }
+
+    .radio-to-buttons_recurrfreq {
+      --fields_spacing-inline: 1px;
+    }
+
+    .radio-to-buttons_donationAmt {
+      --fields_spacing-inline: 4px;
+      --fields_spacing-block: 4px;
+      margin-top: 17px;
+      margin-bottom: 24px;
+
+      .en__field--donationAmt.en__field--radio
+        .en__field__item:nth-of-type(n + 4) {
+        --donation-amount__button_count: 2;
+      }
+
+      .en__field--donationAmt
+        div:not(.en__field__item--other)
+        .en__field__label--item::after {
+        font-size: 18px;
+        opacity: 1;
+        margin-left: 0px;
+      }
+      .en__field__item--other {
+        position: relative;
+      }
+
+      &.en__field--withOther--active {
+        .en__field__item--other {
+          color: white;
+        }
+      }
+
+      .en__field__item--other:before {
+        content: "$";
+        font-size: 16px;
+        height: 17px;
+        left: 20px;
+        line-height: 0;
+        position: absolute;
+        top: 48%;
+        width: 9px;
+      }
+
+      .en__field__item--other input {
+        padding: 12.6px 28px 12.6px 28px;
+        background-color: var(--button_background-color);
+        border: 1px solid var(--button_border-color);
+        color: #000000;
+        box-shadow: none;
+        font-size: 16px;
+        font-weight: 600;
+        &::placeholder {
+          color: #000000;
+        }
+      }
+
+      .en__field__item--other input:hover {
+        background-color: white;
+        border: 1px solid black;
+      }
+
+      .en__field__item--other input:focus {
+        border-color: black;
+      }
+
+      .en__field--withOther--active .en__field__item--other:before {
+        color: white;
+      }
+    }
+
+    .en__field--giveBySelect {
+      --button_background-color: var(--color_black);
+      --button_color: var(--color_white);
+      --button_border-color: var(--color_black);
+      --button_border-width: 1px;
+      --button_background-color_hover: var(--color_black);
+      --button_color_hover: var(--color_white);
+      --button_border-color_hover: var(--color_black);
+      --button_background-color_checked: var(--color_black);
+      --button_color_checked: var(--color_black);
+
+      label .google-pay,
+      label .apple-pay,
+      label .venmo,
+      label .bank,
+      label .daf {
+        filter: invert(100%);
+      }
+    }
+
+    .express-details-or p {
+      --p_font-size: 16px;
+      --p_line-height: 160%;
+      margin-top: 0;
+      margin-bottom: 24px;
+    }
+
+    .opt-ins-header p {
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 16px;
+      letter-spacing: 0.05px;
+      margin: 16px 0px;
+    }
+
+    .opt-ins {
+      display: flex;
+      flex-direction: row;
+
+      > .en__field {
+        flex-basis: auto;
+        --fields_spacing-block: 0px;
+
+        .en__field__label--item {
+          white-space: nowrap;
+        }
+      }
+    }
+
+    .sms-disclaimer {
+      font-size: 14px;
+      line-height: 140%;
+      letter-spacing: -1%;
+      font-weight: 400;
+      color: #2a2a2b;
+      margin-top: 8px;
+      margin-bottom: 0px;
+      p {
+        margin: 0;
+      }
+    }
 
     .multistep-stepper {
       display: grid;
+      gap: 2px;
       grid-template-columns: 1fr 1fr 1fr 1fr;
     }
 
@@ -255,32 +465,35 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      color: #667085;
-      font-size: 12px;
-      font-weight: bold;
-      padding: 10px 0 6px;
-      background-color: rgba(228, 228, 228, 0.36);
-      border-bottom: 4px solid transparent;
+      color: #2a2a2bb3;
+      font-size: 12.5px;
+      line-height: 140%;
+      letter-spacing: 4%;
+      font-weight: 700;
+      padding: 0px 6px 9px 6px;
+      border-bottom: 1px solid #b74c3433;
+      text-transform: uppercase;
     }
 
     .multistep-stepper__number {
-      border: 1px solid #667085;
+      border: 1px solid var(--color_primary);
       border-radius: 50%;
       width: 18px;
       height: 18px;
-      display: flex;
       justify-content: center;
       align-items: center;
       margin-right: 6px;
+      display: none;
     }
 
     .multistep-stepper__step--active {
       background-color: #ffffff;
-      border-color: #000000;
+      border-color: #960f33;
       color: #000000;
       .multistep-stepper__number {
-        border-color: #000000;
-        background-color: #000000;
+        display: flex;
+        border-color: var(--color_primary);
+        background-color: var(--color_primary);
         color: #ffffff;
       }
     }
@@ -293,15 +506,54 @@
       }
     }
 
+    // The parent of multistep-button-container needs to be position: absolute for the positioning to work
+    .en__component.en__component--codeblock:has(> .multistep-button-container),
+    .en__component.en__component--formblock.multistep-button-container {
+      flex-wrap: nowrap;
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
     .multistep-button-container {
       display: flex;
-      flex-basis: 60px;
-      margin-bottom: 30px;
+      gap: 2px;
 
-      button:not(.btn-back) {
+      button {
+        margin: 0;
+      }
+
+      .en__submit {
+        padding-left: 0;
+        padding-right: 0;
+        button {
+          font-size: 18px;
+          font-weight: 600;
+          letter-spacing: 2%;
+          .live-variable-currency {
+            font-size: 22px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            margin-left: 6px;
+          }
+          .live-variable-amount {
+            font-size: 30px;
+          }
+          .live-variable-frequency {
+            margin-left: 6px;
+          }
+        }
+      }
+
+      button:not(.btn-back),
+      .en__submit button {
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 999px;
+        min-height: 65px;
 
         svg {
           top: -1px;
@@ -313,77 +565,48 @@
         &:hover svg {
           left: 21px;
         }
-      }
-    }
-
-    .btn-back {
-      flex-basis: 60px;
-      margin-top: 2rem;
-      opacity: 0.8;
-      margin-right: 20px;
-      background-color: var(--submit__button_background-color);
-      border-color: var(--submit__button_border-color);
-      color: var(--submit__button_color);
-      font-size: var(--submit__button_font-size);
-      padding-bottom: var(--submit__button_padding-bottom);
-      padding-top: var(--submit__button_padding-top);
-      text-transform: var(--submit__button_text-transform);
-      transition: opacity 0.2s;
-      height: 65px;
-      justify-content: center;
-      align-items: center;
-      display: flex;
-
-      &:hover {
-        opacity: 0.6;
-      }
-    }
-
-    .multistep-submit {
-      margin-bottom: 30px;
-      display: grid;
-      grid-template-rows: auto;
-      grid-template-columns: 60px 1fr;
-      grid-column-gap: 20px;
-      align-items: flex-end;
-
-      .en__captcha {
-        grid-column: span 2;
-      }
-
-      .btn-back {
-        height: 100%;
-        grid-column: 1;
-        margin-right: 0;
-      }
-
-      .en__submit {
-        height: 100%;
-        grid-column: 2;
-        padding: 0;
-
-        button {
-          height: 100%;
+        &:hover {
+          color: white;
         }
       }
 
-      button {
-        margin-top: 0;
-        margin-bottom: 0;
+      .btn-back {
+        flex-basis: 60px;
+        background-color: var(--submit__button_background-color);
+        border-color: var(--submit__button_border-color);
+        color: var(--submit__button_color);
+        font-size: var(--submit__button_font-size);
+        padding-bottom: var(--submit__button_padding-bottom);
+        padding-top: var(--submit__button_padding-top);
+        text-transform: var(--submit__button_text-transform);
+        transition: opacity 0.2s;
+        height: 65px;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        border-radius: 99px 9px 9px 99px;
+        border-right: 1px solid rgba(255, 255, 255, 0.25);
+
+        &:hover {
+          opacity: 0.8;
+        }
+
+        & ~ .primary,
+        & ~ .en__submit button {
+          border-radius: 9px 99px 99px 9px;
+        }
       }
     }
 
-    .en__submit button {
-      .live-variable-frequency:after {
-        content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='14' viewBox='0 0 15 14' fill='none'%3E%3Cpath d='M8.187 13.313C7.807 13.693 7.192 13.693 6.813 13.313C6.433 12.933 6.433 12.317 6.813 11.938L10.5 8.24998H1.6C0.992 8.24998 0.5 7.75698 0.5 7.14998C0.5 6.54198 0.992 6.04998 1.6 6.04998H10.8L6.813 2.06198C6.433 1.68198 6.433 1.06698 6.813 0.686978C7.193 0.306978 7.808 0.306978 8.187 0.686978L14.5 6.99998L8.187 13.313Z' fill='white'/%3E%3C/svg%3E%3C");
-        position: relative;
-        top: -1px;
-        left: 16px;
-        transition: left 0.3s;
+    &[data-engrid-payment-type="stripedigitalwallet"] {
+      .en__submit {
+        display: none;
       }
-
-      &:hover .live-variable-frequency:after {
-        left: 21px;
+      #en__digitalWallet {
+        position: absolute;
+        bottom: 0px;
+        left: 63px;
+        width: calc(100% - 63px);
       }
     }
 
@@ -406,10 +629,6 @@
 
       .btn-back {
         display: none;
-      }
-
-      .en__submit button .live-variable-frequency:after {
-        content: none;
       }
 
       .multistep-submit {
@@ -449,6 +668,41 @@
           padding: 0 20px 28px;
         }
       }
+    }
+    .multistep-thank-you {
+      img {
+        height: 103px;
+        margin-top: 48px;
+      }
+      --h1_font-size: 28px;
+      --h1_line-height: 110%;
+      --h1_letter-spacing: -2%;
+      --h1_font-weight: 500;
+      --h2_font-size: 18px;
+      --h2_line-height: 160%;
+      text-align: center;
+    }
+    .multistep-thank-you-info {
+      --p_font-size: 15px;
+      --p_line-height: 140%;
+      text-align: center;
+    }
+  }
+
+  @media screen and (prefers-reduced-motion: reduce) {
+    .reduced-motion {
+      display: unset;
+    }
+    .motion-ok {
+      display: none;
+    }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    .reduced-motion {
+      display: none;
+    }
+    .motion-ok {
+      display: unset;
     }
   }
 }

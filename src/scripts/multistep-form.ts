@@ -66,6 +66,27 @@ export default class MultistepForm {
     this.addStepDataAttributes();
     this.addBackButtonToFinalStep();
     this.addEventListeners();
+    this.renderOptIns();
+  }
+
+  private renderOptIns() {
+    // if .opt-ins
+    if (document.querySelector(".opt-ins")) {
+      // if label for en__field_supporter_questions_164260 - Change text content to "Email"
+      const emailLabel = document.querySelector(
+        "label[for='en__field_supporter_questions_164260']"
+      );
+      if (emailLabel) {
+        emailLabel.textContent = "Email";
+      }
+      // if label for en__field_supporter_questions_707325 - Change text content to "Text Message"
+      const textMessageLabel = document.querySelector(
+        "label[for='en__field_supporter_questions_707325']"
+      );
+      if (textMessageLabel) {
+        textMessageLabel.textContent = "Text Message";
+      }
+    }
   }
 
   private addStepDataAttributes() {
@@ -151,6 +172,7 @@ export default class MultistepForm {
         `Bypassing validation or going backwards. Activating step ${targetStep}`
       );
       ENGrid.setBodyData("multistep-active-step", targetStep);
+      this.setGiveBySelectToCardOnStep2(targetStep);
       this.scrollViewport();
       return;
     }
@@ -168,6 +190,7 @@ export default class MultistepForm {
           ?.closest(".en__component--formblock")
           ?.getAttribute("data-multistep-step") ?? "1";
       ENGrid.setBodyData("multistep-active-step", invalidStep);
+      this.setGiveBySelectToCardOnStep2(invalidStep);
       if (field) {
         const scrollToError = field ? field.getBoundingClientRect().top : 0;
 
@@ -190,11 +213,24 @@ export default class MultistepForm {
     // If validation passes, activate the step
     this.logger.log(`Validation passed. Activating step ${targetStep}`);
     ENGrid.setBodyData("multistep-active-step", targetStep);
+    this.setGiveBySelectToCardOnStep2(targetStep);
     if (this.inIframe()) {
       this.scrollTo();
       return;
     }
     this.scrollViewport();
+  }
+
+  private setGiveBySelectToCardOnStep2(step: string) {
+    if (step !== "2") return;
+    const cardRadio = Array.from(
+      document.getElementsByName("transaction.giveBySelect")
+    ).find(
+      (radio) => (radio as HTMLInputElement).value.toLowerCase() === "card"
+    ) as HTMLInputElement | undefined;
+    if (!cardRadio) return;
+    this.logger.log("Navigated to step 2. Setting giveBySelect to card.");
+    cardRadio.click();
   }
 
   private scrollViewport() {
@@ -283,10 +319,12 @@ export default class MultistepForm {
     if (!submitButtonContainer) return;
     submitButtonContainer.insertAdjacentHTML(
       "beforebegin",
-      `<button class="btn-back" data-multistep-change-step="2" type="button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-          <path fill="currentColor" d="M7.214.786c.434-.434 1.138-.434 1.572 0 .433.434.433 1.137 0 1.571L4.57 6.572h10.172c.694 0 1.257.563 1.257 1.257s-.563 1.257-1.257 1.257H4.229l4.557 4.557c.433.434.433 1.137 0 1.571-.434.434-1.138.434-1.572 0L0 8 7.214.786z"></path>
-         </svg>
+      `<button class="btn-back" data-multistep-change-step="3" type="button">
+      <svg width="10" height="16" viewBox="0 0 10 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g opacity="0.75" style="mix-blend-mode:hard-light">
+      <path d="M8.41406 1L1.41406 8L8.41406 15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      </svg>
        </button>`
     );
   }
@@ -300,6 +338,12 @@ export default class MultistepForm {
   }
 
   private validateStep(step: string) {
+    const enValidationPassed = this.validateEnValidators(step);
+    const vgsCardFieldsPassed = this.validateVgsCardFields(step);
+    return enValidationPassed && vgsCardFieldsPassed;
+  }
+
+  private validateEnValidators(step: string) {
     if (this.validators.length === 0) return true;
 
     const validators = this.validators.filter((validator) => {
@@ -313,10 +357,90 @@ export default class MultistepForm {
 
     const validationResults = validators.map((validator) => {
       validator.hideMessage();
-      return !validator.isVisible() || validator.test();
+      const passed = !validator.isVisible() || validator.test();
+      this.setFieldLabelTitle(validator.field, passed ? "" : validator.message);
+      return passed;
     });
 
     return validationResults.every((result) => result);
+  }
+
+  private setFieldLabelTitle(fieldId: number, message: string) {
+    const label = document.querySelector(
+      `.en__field--${fieldId} .en__field__label`
+    );
+    if (!label) return;
+    if (message) {
+      label.setAttribute("title", message);
+    } else {
+      label.removeAttribute("title");
+    }
+  }
+
+  private validateVgsCardFields(step: string) {
+    const ccnumberBlock = document.querySelector(".en__field--ccnumber");
+    if (!ccnumberBlock) return true;
+
+    const ccnumberStep = ccnumberBlock
+      .closest("[data-multistep-step]")
+      ?.getAttribute("data-multistep-step");
+    if (ccnumberStep !== step) return true;
+
+    if (!this.isCardPayment()) {
+      this.clearVgsCardFieldErrors();
+      return true;
+    }
+
+    let allValid = true;
+    ["ccnumber", "ccexpire", "ccvv"].forEach((fieldName) => {
+      const field = document.querySelector(
+        `#en__field_transaction_${fieldName}`
+      );
+      const block = document.querySelector(`.en__field--${fieldName}`);
+      if (!field || !block) return;
+
+      const isValid =
+        field instanceof HTMLInputElement
+          ? !!field.value
+          : field.classList.contains("vgs-collect-container__valid");
+
+      if (isValid) {
+        block.classList.remove("has-error", "en__field--validationFailed");
+      } else {
+        block.classList.add("has-error", "en__field--validationFailed");
+        allValid = false;
+      }
+    });
+
+    return allValid;
+  }
+
+  private isCardPayment() {
+    const giveBySelect = document.querySelector(
+      "input[name='transaction.giveBySelect']:checked"
+    ) as HTMLInputElement | null;
+    if (giveBySelect?.value) {
+      return giveBySelect.value.toLowerCase() === "card";
+    }
+
+    const paymentTypeField = document.querySelector(
+      "#en__field_transaction_paymenttype"
+    ) as HTMLInputElement | HTMLSelectElement | null;
+    if (paymentTypeField?.value) {
+      return ["vi", "mc", "di", "ax"].includes(
+        paymentTypeField.value.toLowerCase()
+      );
+    }
+
+    return true;
+  }
+
+  private clearVgsCardFieldErrors() {
+    ["ccnumber", "ccexpire", "ccvv"].forEach((fieldName) => {
+      document
+        .querySelector(`.en__field--${fieldName}`)
+        ?.classList.remove("has-error", "en__field--validationFailed");
+    });
   }
 
   private getStepsBetween(currentStep: string, targetStep: string) {

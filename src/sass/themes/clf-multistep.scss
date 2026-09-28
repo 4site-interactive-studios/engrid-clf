@@ -294,7 +294,15 @@
     // }
 
     .en__field--validationFailed .en__field__error {
-      display: none;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     form.en__component > .en__component {
@@ -602,20 +610,6 @@
     }
     .en__field--emailAddress {
       position: relative;
-      .en__field__error {
-        display: block;
-        width: 100%;
-        font-size: 0.75rem;
-        background-color: var(--error__color);
-        border-bottom-left-radius: 3px;
-        border-bottom-right-radius: 3px;
-        color: #fff;
-        padding: 5px 10px;
-        transition: 0.3s opacity ease-in-out, 0.3s bottom ease-in-out,
-          z-index 0.3s ease-in-out;
-        line-height: 1;
-        margin-top: -5px;
-      }
     }
     .mobile-logo {
       margin-top: -15px;
