@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Monday, September 28, 2026 @ 17:21:50 ET
+ *  Date: Wednesday, September 30, 2026 @ 10:50:49 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28124,6 +28124,7 @@ class DonationLightboxForm {
     this.putArrowUpSVG();
     this.bounceArrow(this.frequency.getInstance().frequency);
     this.addEvents();
+    this.renderOptIns();
     this.changeSubmitButton();
     this.sendMessage("status", "loaded");
     // Check if theres a color value in the url
@@ -28154,6 +28155,21 @@ class DonationLightboxForm {
         }
       }
     });
+  }
+  renderOptIns() {
+    // if .opt-ins
+    if (document.querySelector(".opt-ins")) {
+      // if label for en__field_supporter_questions_164260 - Change text content to "Email"
+      const emailLabel = document.querySelector("label[for='en__field_supporter_questions_164260']");
+      if (emailLabel) {
+        emailLabel.textContent = "Email";
+      }
+      // if label for en__field_supporter_questions_707325 - Change text content to "Text Message"
+      const textMessageLabel = document.querySelector("label[for='en__field_supporter_questions_707325']");
+      if (textMessageLabel) {
+        textMessageLabel.textContent = "Text Message";
+      }
+    }
   }
   // Send iframe message to parent
   sendMessage(key, value) {
@@ -28190,11 +28206,8 @@ class DonationLightboxForm {
       if (sectionTotal > 1) {
         if (key == 0) {
           sectionNavigation.innerHTML = `
-        <button class="section-navigation__next" data-section-id="${key}">
-          <span>Donate Today</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 14 14">
-              <path fill="currentColor" d="M7.687 13.313c-.38.38-.995.38-1.374 0-.38-.38-.38-.996 0-1.375L10 8.25H1.1c-.608 0-1.1-.493-1.1-1.1 0-.608.492-1.1 1.1-1.1h9.2L6.313 2.062c-.38-.38-.38-.995 0-1.375s.995-.38 1.374 0L14 7l-6.313 6.313z"/>
-          </svg>
+        <button class="section-navigation__next primary" data-section-id="${key}">
+          Next
         </button>
       `;
         } else if (key == this.sections.length - 1) {
@@ -28202,41 +28215,42 @@ class DonationLightboxForm {
           section.dataset.lastSection = true;
           sectionNavigation.innerHTML = `
         <button class="section-navigation__previous" aria-label="Back" data-section-id="${key}">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-              <path fill="currentColor" d="M7.214.786c.434-.434 1.138-.434 1.572 0 .433.434.433 1.137 0 1.571L4.57 6.572h10.172c.694 0 1.257.563 1.257 1.257s-.563 1.257-1.257 1.257H4.229l4.557 4.557c.433.434.433 1.137 0 1.571-.434.434-1.138.434-1.572 0L0 8 7.214.786z"/>
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g opacity="0.75" style="mix-blend-mode:hard-light">
+            <path d="M8.41406 1L1.41406 8L8.41406 15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </g>
           </svg>
         </button>
-        <button class="section-navigation__submit" data-section-id="${key}" type="submit" data-label="Give $AMOUNT$FREQUENCY">
-          <span>Give Now</span>
+        <button class="section-navigation__submit primary" data-section-id="${key}" type="submit" data-label="Donate $AMOUNT $FREQUENCY">
+          Donate
         </button>
       `;
         } else {
           sectionNavigation.innerHTML = `
         <button class="section-navigation__previous" aria-label="Back" data-section-id="${key}">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16">
-              <path fill="currentColor" d="M7.214.786c.434-.434 1.138-.434 1.572 0 .433.434.433 1.137 0 1.571L4.57 6.572h10.172c.694 0 1.257.563 1.257 1.257s-.563 1.257-1.257 1.257H4.229l4.557 4.557c.433.434.433 1.137 0 1.571-.434.434-1.138.434-1.572 0L0 8 7.214.786z"/>
-          </svg>
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g opacity="0.75" style="mix-blend-mode:hard-light">
+          <path d="M8.41406 1L1.41406 8L8.41406 15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>
         </button>
-        <button class="section-navigation__next" data-section-id="${key}">
-          <span>Continue</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 14 14">
-              <path fill="currentColor" d="M7.687 13.313c-.38.38-.995.38-1.374 0-.38-.38-.38-.996 0-1.375L10 8.25H1.1c-.608 0-1.1-.493-1.1-1.1 0-.608.492-1.1 1.1-1.1h9.2L6.313 2.062c-.38-.38-.38-.995 0-1.375s.995-.38 1.374 0L14 7l-6.313 6.313z"/>
-          </svg>
+        <button class="section-navigation__next primary" data-section-id="${key}">
+          Next
         </button>
       `;
         }
         if (key + 1 < sectionTotal) {
           sectionCount.innerHTML = `
-          <span class="section-count__current">${key + 1}</span> of
-          <span class="section-count__total">${sectionTotal}</span>
+          <span class="section-count__current hide">${key + 1}</span> of
+          <span class="section-count__total hide">${sectionTotal}</span>
         `;
         }
       } else {
         // Single Section Pages
         const submitButtonLabel = document.querySelector(".en__submit button")?.innerText || "Submit";
         sectionNavigation.innerHTML = `
-        <button class="section-navigation__submit" data-section-id="${key}" type="submit" data-label="${submitButtonLabel}">
-          <span>${submitButtonLabel}</span>
+        <button class="section-navigation__submit primary" data-section-id="${key}" type="submit" data-label="${submitButtonLabel}">
+          ${submitButtonLabel}
         </button>
       `;
       }
@@ -28257,7 +28271,7 @@ class DonationLightboxForm {
           document.querySelectorAll(".en__field--giveBySelect input[type='radio']").forEach(el => {
             el.checked = false;
           });
-          this.showHideDynamicSection(true);
+          this.showHideDynamicSection("card");
         }
         if (this.validateForm(key)) {
           this.scrollToNextSection();
@@ -28696,19 +28710,19 @@ class DonationLightboxForm {
   }
   changeSubmitButton() {
     const submit = document.querySelector(".section-navigation__submit");
-    const amount = this.checkNested(window.EngagingNetworks, "require", "_defined", "enjs", "getDonationTotal") ? "$" + window.EngagingNetworks.require._defined.enjs.getDonationTotal() : null;
+    const amount = this.checkNested(window.EngagingNetworks, "require", "_defined", "enjs", "getDonationTotal") ? window.EngagingNetworks.require._defined.enjs.getDonationTotal() : null;
     let frequency = this.frequency.getInstance().frequency;
     let label = submit ? submit.dataset.label : "";
-    frequency = frequency === "onetime" ? "" : "<small>/mo</small>";
+    frequency = frequency === "onetime" ? "" : frequency;
     if (amount) {
-      label = label.replace("$AMOUNT", amount);
-      label = label.replace("$FREQUENCY", frequency);
+      label = label.replace("$AMOUNT", `<span class="live-variable-currency">$</span><span class="live-variable-amount">${amount}</span>`);
+      label = label.replace("$FREQUENCY", `<span class="live-variable-frequency">${frequency}</span>`);
     } else {
       label = label.replace("$AMOUNT", "");
       label = label.replace("$FREQUENCY", "");
     }
     if (submit && label) {
-      submit.innerHTML = `<span>${label}</span>`;
+      submit.innerHTML = label;
     }
   }
   clickPaymentOptions(opts) {
@@ -28774,6 +28788,23 @@ class DonationLightboxForm {
         this.changeSubmitButton();
       });
     }
+
+    // Elements for changing step
+    const changeStepButtons = document.querySelectorAll("[data-multistep-change-step]");
+    changeStepButtons.forEach(button => {
+      button.addEventListener("click", e => {
+        e.preventDefault();
+        const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
+        if (isNaN(targetStep)) return;
+        // Multistep steps are 1-based, sections are 0-based
+        const targetSectionId = targetStep - 1;
+        const currentSectionId = Number(this.currentSectionId);
+        // Bypass validation when going backwards
+        if (targetSectionId <= currentSectionId || this.validateForm(currentSectionId)) {
+          this.scrollToSection(targetSectionId, currentSectionId);
+        }
+      });
+    });
     this.frequency.getInstance().onFrequencyChange.subscribe(s => this.bounceArrow(s));
     this.frequency.getInstance().onFrequencyChange.subscribe(() => this.changeSubmitButton());
     this.amount.getInstance().onAmountChange.subscribe(() => this.changeSubmitButton());
@@ -28851,8 +28882,13 @@ class DonationLightboxForm {
     });
 
     // Then, handle sections with giveBySelect- elements
+    const lastSection = this.sections[this.sections.length - 1];
     sectionsWithGiveBySelect.forEach(sectionId => {
       const section = this.sections[sectionId];
+      if (section === lastSection) {
+        section.style.display = "block";
+        return;
+      }
       // Only get giveBySelect- elements that are not in digital-wallets-wrapper
       const sectionItems = Array.from(section.querySelectorAll("[class*='giveBySelect-']")).filter(item => !item.closest(".digital-wallets-wrapper"));
       console.log(`Section ${sectionId} has ${sectionItems.length} giveBySelect- elements (excluding digital-wallets-wrapper)`);

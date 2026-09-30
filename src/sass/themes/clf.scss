@@ -244,7 +244,8 @@
     }
   }
 
-  &[data-engrid-multistep] {
+  &[data-engrid-multistep],
+  &[data-engrid-subtheme="multistep"] {
     --en-vgs-height: 46px;
     --engrid__body-main_padding: 12px 20px 20px 20px;
     --engrid__body-main_margin: 0;
@@ -253,10 +254,13 @@
     --button_border-color: transparent;
     --button_background-color: #f2f0f1;
 
+    --recurring-frequency__button_padding: 19px 16px;
+    --recurring-frequency__button_line-height: 100%;
+
     --button_font-size: 18px;
     --button_font-weight: 600;
 
-    --submit__button_font-size: 24px;
+    --submit__button_font-size: 30px;
 
     --give-by-select__button_count: 1;
 
@@ -322,6 +326,13 @@
       }
     }
 
+    input[type="checkbox"] + label {
+      align-items: flex-start;
+      &::before {
+        top: 0.2em;
+      }
+    }
+
     .radio-to-buttons_recurrfreq {
       --fields_spacing-inline: 1px;
     }
@@ -356,7 +367,7 @@
 
       .en__field__item--other:before {
         content: "$";
-        font-size: 16px;
+        font-size: 18px;
         height: 17px;
         left: 20px;
         line-height: 0;
@@ -366,12 +377,12 @@
       }
 
       .en__field__item--other input {
-        padding: 12.6px 28px 12.6px 28px;
+        padding: 14.2px 28px;
         background-color: var(--button_background-color);
         border: 1px solid var(--button_border-color);
         color: #000000;
         box-shadow: none;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 600;
         &::placeholder {
           color: #000000;
@@ -442,6 +453,8 @@
     }
 
     .sms-disclaimer {
+      --p_font-size: 14px;
+      --p_line-height: 140%;
       font-size: 14px;
       line-height: 140%;
       letter-spacing: -1%;
@@ -517,7 +530,8 @@
       margin-right: 0;
     }
 
-    .multistep-button-container {
+    .multistep-button-container,
+    .section-navigation {
       display: flex;
       gap: 2px;
 
@@ -547,7 +561,7 @@
         }
       }
 
-      button:not(.btn-back),
+      button:not(.btn-back, .section-navigation__previous),
       .en__submit button {
         display: flex;
         align-items: center;
@@ -570,7 +584,8 @@
         }
       }
 
-      .btn-back {
+      .btn-back,
+      .section-navigation__previous {
         flex-basis: 60px;
         background-color: var(--submit__button_background-color);
         border-color: var(--submit__button_border-color);
@@ -592,6 +607,8 @@
         }
 
         & ~ .primary,
+        & ~ .section-navigation__submit,
+        & ~ .section-navigation__next,
         & ~ .en__submit button {
           border-radius: 9px 99px 99px 9px;
         }
@@ -624,7 +641,7 @@
     }
 
     //Modifications for "expand" variant
-    &[data-engrid-multistep-expand="true"] {
+    &[data-engrid-multistep-expand="true"]:not([data-engrid-subtheme="multistep"]) {
       // Hide steppers
       .multistep-stepper {
         display: none;
