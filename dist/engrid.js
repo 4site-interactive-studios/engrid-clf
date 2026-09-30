@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, September 30, 2026 @ 10:50:49 ET
+ *  Date: Wednesday, September 30, 2026 @ 13:04:05 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28984,6 +28984,15 @@ class MultistepForm {
     this.addBackButtonToFinalStep();
     this.addEventListeners();
     this.renderOptIns();
+    this.applyColorOverride();
+  }
+  applyColorOverride() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const color = urlParams.get("color");
+    if (color) {
+      document.body.style.setProperty("--color_primary", color);
+      this.logger.log(`Overriding --color_primary with ${color}`);
+    }
   }
   renderOptIns() {
     // if .opt-ins

@@ -67,6 +67,16 @@ export default class MultistepForm {
     this.addBackButtonToFinalStep();
     this.addEventListeners();
     this.renderOptIns();
+    this.applyColorOverride();
+  }
+
+  private applyColorOverride() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const color = urlParams.get("color");
+    if (color) {
+      document.body.style.setProperty("--color_primary", color);
+      this.logger.log(`Overriding --color_primary with ${color}`);
+    }
   }
 
   private renderOptIns() {
