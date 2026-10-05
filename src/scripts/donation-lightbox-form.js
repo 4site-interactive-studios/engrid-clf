@@ -558,8 +558,7 @@ export default class DonationLightboxForm {
       console.log("Changed current section ID to", sectionId);
       this.sections[sectionId].scrollIntoView({
         behavior: "smooth",
-        // block: "start",
-        // inline: "center",
+        inline: "start",
       });
     }
   }
@@ -1105,7 +1104,7 @@ export default class DonationLightboxForm {
     );
     if (paymentType.length) {
       paymentType.forEach((item) => {
-        item.addEventListener("change", () => {
+        item.addEventListener("change", (event) => {
           this.showHideDynamicSection(item.value.toLowerCase());
           if (item.value === "card") {
             const paymentType = document.querySelector(
@@ -1116,6 +1115,9 @@ export default class DonationLightboxForm {
             }
           }
           console.log(`Payment type changed to: ${item.value.toLowerCase()}`);
+          // Only auto-advance on real user interaction; synthetic change events
+          // dispatched by showHideDynamicSection must not scroll the form
+          if (!event.isTrusted) return;
           window.setTimeout(() => {
             this.scrollToNextSection();
           }, 100);

@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, September 30, 2026 @ 13:04:05 ET
+ *  Date: Monday, October 5, 2026 @ 09:17:19 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28372,9 +28372,8 @@ class DonationLightboxForm {
       this.setCurrentSection(sectionId);
       console.log("Changed current section ID to", sectionId);
       this.sections[sectionId].scrollIntoView({
-        behavior: "smooth"
-        // block: "start",
-        // inline: "center",
+        behavior: "smooth",
+        inline: "start"
       });
     }
   }
@@ -28812,7 +28811,7 @@ class DonationLightboxForm {
     const paymentType = document.querySelectorAll("input[name='transaction.giveBySelect']");
     if (paymentType.length) {
       paymentType.forEach(item => {
-        item.addEventListener("change", () => {
+        item.addEventListener("change", event => {
           this.showHideDynamicSection(item.value.toLowerCase());
           if (item.value === "card") {
             const paymentType = document.querySelector("#en__field_transaction_paymenttype");
@@ -28821,6 +28820,9 @@ class DonationLightboxForm {
             }
           }
           console.log(`Payment type changed to: ${item.value.toLowerCase()}`);
+          // Only auto-advance on real user interaction; synthetic change events
+          // dispatched by showHideDynamicSection must not scroll the form
+          if (!event.isTrusted) return;
           window.setTimeout(() => {
             this.scrollToNextSection();
           }, 100);
