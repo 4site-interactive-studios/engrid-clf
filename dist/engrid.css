@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, September 30, 2026 @ 13:04:05 ET
+ *  Date: Monday, October 5, 2026 @ 11:02:48 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8354,6 +8354,11 @@ body[data-engrid-theme=clf][data-engrid-multistep][data-thank-you=true] .body-ma
   position:absolute;
   width:calc(100% - 40px);
 }
+body[data-engrid-theme=clf][data-engrid-multistep] .form-heading,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .form-heading{
+  --h2_font-size:44px;
+  --h2_line-height:112%;
+  --h2_font-weight:600;
+}
 body[data-engrid-theme=clf][data-engrid-multistep] .form-header,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .form-header{
   --h2_font-size:16px;
   --h2_line-height:16px;
@@ -8434,8 +8439,11 @@ body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect,body
   --button_background-color_checked:var(--color_black);
   --button_color_checked:var(--color_black);
 }
-body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .apple-pay,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .bank,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .daf,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .google-pay,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .venmo,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .apple-pay,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .bank,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .daf,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .google-pay,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .venmo{
+body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .apple-pay,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .bank,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .daf,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .venmo,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .apple-pay,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .bank,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .daf,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .venmo{
   filter:invert(100%);
+}
+body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .google-pay,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .google-pay{
+  filter:invert(0);
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .express-details-or p,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .express-details-or p{
   --p_font-size:16px;
@@ -8719,6 +8727,9 @@ body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .multistep-stepper{
 body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .multistep-stepper__step--active .multistep-stepper__number{
   margin-left:-12px;
 }
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep] [data-multistep-change-step="4"].multistep-stepper__step--active .multistep-stepper__number{
+  margin-left:-25px;
+}
 body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .multistep-stepper__step--active .multistep-stepper__label{
   margin-right:-12px;
 }
@@ -8868,12 +8879,44 @@ body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-
 body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] [data-last-section=true] .section-navigation,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] [data-last-section=true] .section-navigation,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] [data-last-section=true] .section-navigation{
   display:none !important;
 }
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .en__component--formblock.digital-wallets-wrapper:has(>#en__digitalWallet),body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .en__component--formblock.digital-wallets-wrapper:has(>#en__digitalWallet),body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .en__component--formblock.digital-wallets-wrapper:has(>#en__digitalWallet){
+  display:flex;
+  flex-direction:row;
+  width:102%;
+}
 body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .back-link,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .back-link,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .back-link{
+  align-items:center;
+  background-color:var(--submit__button_background-color);
+  border-color:var(--submit__button_border-color);
+  border-radius:99px 9px 9px 99px;
+  border-right:1px solid #ffffff40;
+  color:var(--submit__button_color);
   display:block;
+  display:flex;
+  flex-basis:45px;
+  font-size:var(--submit__button_font-size);
+  height:45px;
+  justify-content:center;
+  padding-bottom:var(--submit__button_padding-bottom);
+  padding-top:var(--submit__button_padding-top);
   text-decoration:none;
+  text-transform:var(--submit__button_text-transform);
+  transition:opacity .2s;
   z-index:1;
 }
-body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-conditonally-hide-show-digital-wallet-elements] #en__digitalWallet .en__digitalWallet__container{
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .back-link:hover,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .back-link:hover,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .back-link:hover{
+  opacity:.8;
+}
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .__PrivateStripeElement iframe,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .back-link~.en__submit button,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .back-link~.primary,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .back-link~.section-navigation__next,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] .back-link~.section-navigation__submit,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .__PrivateStripeElement iframe,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .back-link~.en__submit button,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .back-link~.primary,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .back-link~.section-navigation__next,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] .back-link~.section-navigation__submit,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .__PrivateStripeElement iframe,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .back-link~.en__submit button,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .back-link~.primary,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .back-link~.section-navigation__next,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .back-link~.section-navigation__submit{
+  border-radius:9px 99px 99px 9px;
+}
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] #en__digitalWallet,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] #en__digitalWallet,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] #en__digitalWallet{
+  flex-basis:calc(100% - 45px);
+}
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=daf] #en__digitalWallet__stripeButtons__container,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=paypaltouch] #en__digitalWallet__stripeButtons__container,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] #en__digitalWallet__stripeButtons__container{
+  margin-top:16px !important;
+}
+body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-conditonally-hide-show-digital-wallet-elements] #en__digitalWallet{
   margin-top:0 !important;
 }
 body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .digital-wallets-wrapper{

@@ -558,8 +558,7 @@ export default class DonationLightboxForm {
       console.log("Changed current section ID to", sectionId);
       this.sections[sectionId].scrollIntoView({
         behavior: "smooth",
-        // block: "start",
-        // inline: "center",
+        inline: "start",
       });
     }
   }
@@ -663,16 +662,26 @@ export default class DonationLightboxForm {
       const paymentType = form.querySelector(
         "#en__field_transaction_paymenttype"
       );
+      const giveBySelect = form.querySelector(
+        "input[name='transaction.giveBySelect']:checked"
+      );
       const ccnumber = form.querySelector("#en__field_transaction_ccnumber");
       const ccnumberBlock = form.querySelector(".en__field--ccnumber");
       const ccnumberSection = this.getSectionId(ccnumberBlock);
+      // The checked giveBySelect radio is the source of truth for the selected
+      // payment method; the hidden paymentType field can be stale (it is forced
+      // to "card" when the credit card section's Next button is clicked)
+      const selectedPaymentType = giveBySelect
+        ? giveBySelect.value.toLowerCase()
+        : paymentType.value.toLowerCase();
       const isDigitalWalletPayment = [
         "paypal",
         "paypaltouch",
         "stripedigitalwallet",
         "daf",
-      ].includes(paymentType.value.toLowerCase());
-      const isBankPayment = paymentType.value.toLowerCase() === "ach";
+        "venmo",
+      ].includes(selectedPaymentType);
+      const isBankPayment = selectedPaymentType === "ach";
       console.log(
         "DonationLightboxForm: validateForm",
         ccnumberBlock,
@@ -751,7 +760,7 @@ export default class DonationLightboxForm {
         }
       }
       // Validate Bank Details
-      if (paymentType && paymentType.value.toLowerCase() === "ach") {
+      if (paymentType && selectedPaymentType === "ach") {
         const routingNumber = form.querySelector(
           "#en__field_supporter_bankRoutingNumber"
         );
@@ -1074,6 +1083,39 @@ export default class DonationLightboxForm {
     );
     changeStepButtons.forEach((button) => {
       button.addEventListener("click", (e) => {
+        const paymentSelector = button.closest(
+          ".en__field--giveBySelect, .give-by-select-wrapper"
+        );
+        if (paymentSelector) {
+          const label = button.closest("label");
+          const item = button.closest(".en__field__item");
+          const radio =
+            (button.type === "radio" && button) ||
+            (label &&
+              (label.control || label.querySelector("input[type='radio']"))) ||
+            (item &&
+              item.querySelector("input[name='transaction.giveBySelect']"));
+          // If the payment option is already selected, clicking it fires no
+          // change event, so navigate directly instead of waiting for one.
+          // Otherwise let the change handler drive navigation.
+          if (!radio || radio.checked) {
+            e.preventDefault();
+            const targetStep = parseInt(
+              button.dataset.multistepChangeStep,
+              10
+            );
+            if (isNaN(targetStep)) return;
+            const targetSectionId = targetStep - 1;
+            const currentSectionId = Number(this.currentSectionId);
+            if (
+              targetSectionId <= currentSectionId ||
+              this.validateForm(currentSectionId)
+            ) {
+              this.scrollToSection(targetSectionId, currentSectionId);
+            }
+          }
+          return;
+        }
         e.preventDefault();
         const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
         if (isNaN(targetStep)) return;
@@ -1105,7 +1147,7 @@ export default class DonationLightboxForm {
     );
     if (paymentType.length) {
       paymentType.forEach((item) => {
-        item.addEventListener("change", () => {
+        item.addEventListener("change", (event) => {
           this.showHideDynamicSection(item.value.toLowerCase());
           if (item.value === "card") {
             const paymentType = document.querySelector(
@@ -1116,6 +1158,9 @@ export default class DonationLightboxForm {
             }
           }
           console.log(`Payment type changed to: ${item.value.toLowerCase()}`);
+          // Only auto-advance on real user interaction; synthetic change events
+          // dispatched by showHideDynamicSection must not scroll the form
+          if (!event.isTrusted) return;
           window.setTimeout(() => {
             this.scrollToNextSection();
           }, 100);

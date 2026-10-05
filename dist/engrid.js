@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, September 30, 2026 @ 13:04:05 ET
+ *  Date: Monday, October 5, 2026 @ 11:02:48 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28372,9 +28372,8 @@ class DonationLightboxForm {
       this.setCurrentSection(sectionId);
       console.log("Changed current section ID to", sectionId);
       this.sections[sectionId].scrollIntoView({
-        behavior: "smooth"
-        // block: "start",
-        // inline: "center",
+        behavior: "smooth",
+        inline: "start"
       });
     }
   }
@@ -28463,11 +28462,16 @@ class DonationLightboxForm {
       }
       // Validate Payment Method
       const paymentType = form.querySelector("#en__field_transaction_paymenttype");
+      const giveBySelect = form.querySelector("input[name='transaction.giveBySelect']:checked");
       const ccnumber = form.querySelector("#en__field_transaction_ccnumber");
       const ccnumberBlock = form.querySelector(".en__field--ccnumber");
       const ccnumberSection = this.getSectionId(ccnumberBlock);
-      const isDigitalWalletPayment = ["paypal", "paypaltouch", "stripedigitalwallet", "daf"].includes(paymentType.value.toLowerCase());
-      const isBankPayment = paymentType.value.toLowerCase() === "ach";
+      // The checked giveBySelect radio is the source of truth for the selected
+      // payment method; the hidden paymentType field can be stale (it is forced
+      // to "card" when the credit card section's Next button is clicked)
+      const selectedPaymentType = giveBySelect ? giveBySelect.value.toLowerCase() : paymentType.value.toLowerCase();
+      const isDigitalWalletPayment = ["paypal", "paypaltouch", "stripedigitalwallet", "daf", "venmo"].includes(selectedPaymentType);
+      const isBankPayment = selectedPaymentType === "ach";
       console.log("DonationLightboxForm: validateForm", ccnumberBlock, ccnumberSection);
       if (!isDigitalWalletPayment && !isBankPayment && (sectionId === false || sectionId == ccnumberSection) && checkCard) {
         if (!paymentType || !paymentType.value) {
@@ -28523,7 +28527,7 @@ class DonationLightboxForm {
         }
       }
       // Validate Bank Details
-      if (paymentType && paymentType.value.toLowerCase() === "ach") {
+      if (paymentType && selectedPaymentType === "ach") {
         const routingNumber = form.querySelector("#en__field_supporter_bankRoutingNumber");
         if (!routingNumber) return;
         const bankSection = this.getSectionId(routingNumber);
@@ -28793,6 +28797,26 @@ class DonationLightboxForm {
     const changeStepButtons = document.querySelectorAll("[data-multistep-change-step]");
     changeStepButtons.forEach(button => {
       button.addEventListener("click", e => {
+        const paymentSelector = button.closest(".en__field--giveBySelect, .give-by-select-wrapper");
+        if (paymentSelector) {
+          const label = button.closest("label");
+          const item = button.closest(".en__field__item");
+          const radio = button.type === "radio" && button || label && (label.control || label.querySelector("input[type='radio']")) || item && item.querySelector("input[name='transaction.giveBySelect']");
+          // If the payment option is already selected, clicking it fires no
+          // change event, so navigate directly instead of waiting for one.
+          // Otherwise let the change handler drive navigation.
+          if (!radio || radio.checked) {
+            e.preventDefault();
+            const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
+            if (isNaN(targetStep)) return;
+            const targetSectionId = targetStep - 1;
+            const currentSectionId = Number(this.currentSectionId);
+            if (targetSectionId <= currentSectionId || this.validateForm(currentSectionId)) {
+              this.scrollToSection(targetSectionId, currentSectionId);
+            }
+          }
+          return;
+        }
         e.preventDefault();
         const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
         if (isNaN(targetStep)) return;
@@ -28812,7 +28836,7 @@ class DonationLightboxForm {
     const paymentType = document.querySelectorAll("input[name='transaction.giveBySelect']");
     if (paymentType.length) {
       paymentType.forEach(item => {
-        item.addEventListener("change", () => {
+        item.addEventListener("change", event => {
           this.showHideDynamicSection(item.value.toLowerCase());
           if (item.value === "card") {
             const paymentType = document.querySelector("#en__field_transaction_paymenttype");
@@ -28821,6 +28845,9 @@ class DonationLightboxForm {
             }
           }
           console.log(`Payment type changed to: ${item.value.toLowerCase()}`);
+          // Only auto-advance on real user interaction; synthetic change events
+          // dispatched by showHideDynamicSection must not scroll the form
+          if (!event.isTrusted) return;
           window.setTimeout(() => {
             this.scrollToNextSection();
           }, 100);
@@ -29042,6 +29069,12 @@ class MultistepForm {
     const buttons = document.querySelectorAll("[data-multistep-change-step]");
     buttons.forEach(button => {
       button.addEventListener("click", e => {
+        if (button.closest(".en__field--giveBySelect, .give-by-select-wrapper")) {
+          window.setTimeout(() => {
+            this.activateStep(button.dataset.multistepChangeStep ?? "");
+          }, 0);
+          return;
+        }
         this.activateStep(button.dataset.multistepChangeStep ?? "");
       });
     });

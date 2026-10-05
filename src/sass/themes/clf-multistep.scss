@@ -144,6 +144,10 @@
     .multistep-stepper__step--active .multistep-stepper__number {
       margin-left: -12px;
     }
+    [data-multistep-change-step="4"].multistep-stepper__step--active
+      .multistep-stepper__number {
+      margin-left: -25px;
+    }
     .multistep-stepper__step--active .multistep-stepper__label {
       margin-right: -12px;
     }
@@ -550,15 +554,53 @@
           display: none !important;
         }
       }
+      .en__component--formblock.digital-wallets-wrapper:has(> #en__digitalWallet) {
+        display: flex;
+        flex-direction: row;
+        width: 102%;
+      }
       .back-link {
         display: block;
         text-decoration: none;
         z-index: 1;
+        flex-basis: 45px;
+        background-color: var(--submit__button_background-color);
+        border-color: var(--submit__button_border-color);
+        color: var(--submit__button_color);
+        font-size: var(--submit__button_font-size);
+        padding-bottom: var(--submit__button_padding-bottom);
+        padding-top: var(--submit__button_padding-top);
+        text-transform: var(--submit__button_text-transform);
+        transition: opacity 0.2s;
+        height: 45px;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+        border-radius: 99px 9px 9px 99px;
+        border-right: 1px solid rgba(255, 255, 255, 0.25);
+
+        &:hover {
+          opacity: 0.8;
+        }
+
+        & ~ .primary,
+        & ~ .section-navigation__submit,
+        & ~ .section-navigation__next,
+        & ~ .en__submit button {
+          border-radius: 9px 99px 99px 9px;
+        }
+      }
+      .__PrivateStripeElement iframe {
+        border-radius: 9px 99px 99px 9px;
+      }
+      #en__digitalWallet {
+        flex-basis: calc(100% - 45px);
+      }
+      #en__digitalWallet__stripeButtons__container {
+        margin-top: 16px !important;
       }
     }
-    &[data-conditonally-hide-show-digital-wallet-elements]
-      #en__digitalWallet
-      .en__digitalWallet__container {
+    &[data-conditonally-hide-show-digital-wallet-elements] #en__digitalWallet {
       margin-top: 0 !important;
     }
     .digital-wallets-wrapper {
