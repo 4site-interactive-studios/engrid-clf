@@ -144,6 +144,10 @@
     .multistep-stepper__step--active .multistep-stepper__number {
       margin-left: -12px;
     }
+    [data-multistep-change-step="4"].multistep-stepper__step--active
+      .multistep-stepper__number {
+      margin-left: -25px;
+    }
     .multistep-stepper__step--active .multistep-stepper__label {
       margin-right: -12px;
     }
@@ -589,13 +593,14 @@
       .__PrivateStripeElement iframe {
         border-radius: 9px 99px 99px 9px;
       }
+      #en__digitalWallet {
+        flex-basis: calc(100% - 45px);
+      }
       #en__digitalWallet__stripeButtons__container {
         margin-top: 16px !important;
       }
     }
-    &[data-conditonally-hide-show-digital-wallet-elements]
-      #en__digitalWallet
-      .en__digitalWallet__container {
+    &[data-conditonally-hide-show-digital-wallet-elements] #en__digitalWallet {
       margin-top: 0 !important;
     }
     .digital-wallets-wrapper {

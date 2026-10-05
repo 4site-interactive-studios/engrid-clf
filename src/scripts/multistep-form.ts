@@ -147,6 +147,14 @@ export default class MultistepForm {
     ) as NodeListOf<HTMLElement>;
     buttons.forEach((button) => {
       button.addEventListener("click", (e) => {
+        if (
+          button.closest(".en__field--giveBySelect, .give-by-select-wrapper")
+        ) {
+          window.setTimeout(() => {
+            this.activateStep(button.dataset.multistepChangeStep ?? "");
+          }, 0);
+          return;
+        }
         this.activateStep(button.dataset.multistepChangeStep ?? "");
       });
     });

@@ -662,16 +662,26 @@ export default class DonationLightboxForm {
       const paymentType = form.querySelector(
         "#en__field_transaction_paymenttype"
       );
+      const giveBySelect = form.querySelector(
+        "input[name='transaction.giveBySelect']:checked"
+      );
       const ccnumber = form.querySelector("#en__field_transaction_ccnumber");
       const ccnumberBlock = form.querySelector(".en__field--ccnumber");
       const ccnumberSection = this.getSectionId(ccnumberBlock);
+      // The checked giveBySelect radio is the source of truth for the selected
+      // payment method; the hidden paymentType field can be stale (it is forced
+      // to "card" when the credit card section's Next button is clicked)
+      const selectedPaymentType = giveBySelect
+        ? giveBySelect.value.toLowerCase()
+        : paymentType.value.toLowerCase();
       const isDigitalWalletPayment = [
         "paypal",
         "paypaltouch",
         "stripedigitalwallet",
         "daf",
-      ].includes(paymentType.value.toLowerCase());
-      const isBankPayment = paymentType.value.toLowerCase() === "ach";
+        "venmo",
+      ].includes(selectedPaymentType);
+      const isBankPayment = selectedPaymentType === "ach";
       console.log(
         "DonationLightboxForm: validateForm",
         ccnumberBlock,
@@ -750,7 +760,7 @@ export default class DonationLightboxForm {
         }
       }
       // Validate Bank Details
-      if (paymentType && paymentType.value.toLowerCase() === "ach") {
+      if (paymentType && selectedPaymentType === "ach") {
         const routingNumber = form.querySelector(
           "#en__field_supporter_bankRoutingNumber"
         );
@@ -1073,6 +1083,11 @@ export default class DonationLightboxForm {
     );
     changeStepButtons.forEach((button) => {
       button.addEventListener("click", (e) => {
+        if (
+          button.closest(".en__field--giveBySelect, .give-by-select-wrapper")
+        ) {
+          return;
+        }
         e.preventDefault();
         const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
         if (isNaN(targetStep)) return;
