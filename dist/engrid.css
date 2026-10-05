@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Monday, October 5, 2026 @ 10:42:13 ET
+ *  Date: Monday, October 5, 2026 @ 11:02:48 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8353,6 +8353,11 @@ body[data-engrid-theme=clf][data-engrid-multistep][data-thank-you=true] .body-ma
   left:20px;
   position:absolute;
   width:calc(100% - 40px);
+}
+body[data-engrid-theme=clf][data-engrid-multistep] .form-heading,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .form-heading{
+  --h2_font-size:44px;
+  --h2_line-height:112%;
+  --h2_font-weight:600;
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .form-header,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .form-header{
   --h2_font-size:16px;
