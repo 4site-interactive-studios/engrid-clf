@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Monday, October 5, 2026 @ 10:10:06 ET
+ *  Date: Monday, October 5, 2026 @ 10:42:13 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28797,7 +28797,24 @@ class DonationLightboxForm {
     const changeStepButtons = document.querySelectorAll("[data-multistep-change-step]");
     changeStepButtons.forEach(button => {
       button.addEventListener("click", e => {
-        if (button.closest(".en__field--giveBySelect, .give-by-select-wrapper")) {
+        const paymentSelector = button.closest(".en__field--giveBySelect, .give-by-select-wrapper");
+        if (paymentSelector) {
+          const label = button.closest("label");
+          const item = button.closest(".en__field__item");
+          const radio = button.type === "radio" && button || label && (label.control || label.querySelector("input[type='radio']")) || item && item.querySelector("input[name='transaction.giveBySelect']");
+          // If the payment option is already selected, clicking it fires no
+          // change event, so navigate directly instead of waiting for one.
+          // Otherwise let the change handler drive navigation.
+          if (!radio || radio.checked) {
+            e.preventDefault();
+            const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
+            if (isNaN(targetStep)) return;
+            const targetSectionId = targetStep - 1;
+            const currentSectionId = Number(this.currentSectionId);
+            if (targetSectionId <= currentSectionId || this.validateForm(currentSectionId)) {
+              this.scrollToSection(targetSectionId, currentSectionId);
+            }
+          }
           return;
         }
         e.preventDefault();

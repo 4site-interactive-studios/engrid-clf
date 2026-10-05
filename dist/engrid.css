@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Monday, October 5, 2026 @ 10:10:06 ET
+ *  Date: Monday, October 5, 2026 @ 10:42:13 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8436,6 +8436,9 @@ body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect,body
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .apple-pay,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .bank,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .daf,body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .venmo,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .apple-pay,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .bank,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .daf,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .venmo{
   filter:invert(100%);
+}
+body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect label .google-pay,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect label .google-pay{
+  filter:invert(0);
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .express-details-or p,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .express-details-or p{
   --p_font-size:16px;
