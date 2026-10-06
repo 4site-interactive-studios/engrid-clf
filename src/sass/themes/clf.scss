@@ -631,6 +631,7 @@
         bottom: 4px;
         right: 0px;
         width: calc(100% - 47px);
+        z-index: 999;
       }
       // Google Pay
       .multistep-submit.multistep-button-container .btn-back {

@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Tuesday, October 6, 2026 @ 14:53:26 ET
+ *  Date: Tuesday, October 6, 2026 @ 19:22:22 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8612,6 +8612,7 @@ body[data-engrid-theme=clf][data-engrid-multistep][data-engrid-payment-type=stri
   position:absolute;
   right:0;
   width:calc(100% - 47px);
+  z-index:999;
 }
 body[data-engrid-theme=clf][data-engrid-multistep][data-engrid-payment-type=stripedigitalwallet] .multistep-submit.multistep-button-container .btn-back,body[data-engrid-theme=clf][data-engrid-subtheme=multistep][data-engrid-payment-type=stripedigitalwallet] .multistep-submit.multistep-button-container .btn-back{
   height:35px;
