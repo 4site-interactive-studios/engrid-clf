@@ -343,7 +343,7 @@
     }
 
     .radio-to-buttons_donationAmt {
-      --fields_spacing-inline: 4px;
+      --fields_spacing-inline: 3px;
       --fields_spacing-block: 4px;
       margin-top: 17px;
       margin-bottom: 24px;
@@ -632,8 +632,15 @@
         right: 0px;
         width: calc(100% - 47px);
       }
+      // Google Pay
       .multistep-submit.multistep-button-container .btn-back {
-        height: 55px;
+        height: 35px;
+      }
+      // Apple Pay
+      @supports (font: -apple-system-body) and (hanging-punctuation: first) {
+        .multistep-submit.multistep-button-container .btn-back {
+          height: 55px;
+        }
       }
     }
 
