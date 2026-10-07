@@ -1,4 +1,4 @@
-import { ENGrid, EngridLogger } from "@4site/engrid-scripts";
+import { ENGrid, EnForm, EngridLogger } from "@4site/engrid-scripts";
 
 declare global {
   interface Window {
@@ -26,6 +26,7 @@ export default class MultistepForm {
   );
   private validators: Array<ENValidator> = [];
   private contentShouldExpand: boolean = false;
+  private vgsSubmitReveal: Array<{ el: HTMLElement; prevCss: string }> = [];
 
   constructor() {
     if (this.shouldRun()) {
@@ -68,6 +69,53 @@ export default class MultistepForm {
     this.addEventListeners();
     this.renderOptIns();
     this.applyColorOverride();
+    this.handleVgsTokenizationOnSubmit();
+  }
+
+  // EN's VGS module skips tokenization for any field whose container is not
+  // visible at submit time (it checks offsetWidth/offsetHeight/getClientRects),
+  // blanking transaction.ccnumber/ccexpire/ccvv and submitting them empty.
+  // Since inactive multistep steps are display:none, the step containing the
+  // card fields must be temporarily given layout boxes (without painting it)
+  // when EN's submit chain runs. window.enOnSubmit fires before vgs.submit(),
+  // so EnForm.onSubmit is a safe hook.
+  private handleVgsTokenizationOnSubmit() {
+    if (!document.querySelector(".en__field--vgs")) return;
+    const form = EnForm.getInstance();
+    form.onSubmit.subscribe(() => this.revealVgsFieldsForSubmit());
+    form.onError.subscribe(() => this.restoreVgsFieldsAfterSubmit());
+    window.addEventListener("pageshow", () => this.restoreVgsFieldsAfterSubmit());
+  }
+
+  private revealVgsFieldsForSubmit() {
+    this.restoreVgsFieldsAfterSubmit();
+    const steps = new Set<HTMLElement>();
+    document.querySelectorAll(".en__field--vgs").forEach((field) => {
+      const step = field.closest("[data-multistep-step]") as HTMLElement | null;
+      if (step) steps.add(step);
+    });
+    steps.forEach((step) => {
+      if (getComputedStyle(step).display !== "none") return;
+      this.logger.log(
+        `Revealing VGS step ${step.getAttribute(
+          "data-multistep-step"
+        )} for tokenization`
+      );
+      this.vgsSubmitReveal.push({ el: step, prevCss: step.style.cssText });
+      step.style.setProperty("display", "block", "important");
+      step.style.setProperty("position", "absolute", "important");
+      step.style.setProperty("visibility", "hidden", "important");
+      step.style.setProperty("pointer-events", "none", "important");
+      step.setAttribute("aria-hidden", "true");
+    });
+  }
+
+  private restoreVgsFieldsAfterSubmit() {
+    this.vgsSubmitReveal.forEach(({ el, prevCss }) => {
+      el.style.cssText = prevCss;
+      el.removeAttribute("aria-hidden");
+    });
+    this.vgsSubmitReveal = [];
   }
 
   private applyColorOverride() {
