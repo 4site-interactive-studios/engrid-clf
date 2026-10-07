@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Tuesday, October 6, 2026 @ 23:54:02 ET
+ *  Date: Wednesday, October 7, 2026 @ 09:33:05 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28861,7 +28861,7 @@ class DonationLightboxForm {
     let ptValue = paymentType;
     if (!paymentType) {
       const payment = document.querySelector("#en__field_transaction_paymenttype");
-      if (payment && ["visa", "mastercard", "amex", "discover", "diners", "jcb", "card"].includes(payment.value)) {
+      if (payment && ["visa", "vi", "mastercard", "mc", "amex", "ax", "discover", "di", "diners", "jcb", "card"].includes(payment.value.toLowerCase())) {
         ptValue = "card";
         // Check Card transaction.giveBySelect
         const card = document.querySelector("[name='transaction.giveBySelect'][value='card']");

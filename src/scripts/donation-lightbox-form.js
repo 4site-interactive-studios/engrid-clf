@@ -1180,13 +1180,17 @@ export default class DonationLightboxForm {
         payment &&
         [
           "visa",
+          "vi",
           "mastercard",
+          "mc",
           "amex",
+          "ax",
           "discover",
+          "di",
           "diners",
           "jcb",
           "card",
-        ].includes(payment.value)
+        ].includes(payment.value.toLowerCase())
       ) {
         ptValue = "card";
         // Check Card transaction.giveBySelect
