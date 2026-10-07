@@ -331,6 +331,30 @@
       }
     }
 
+    .monthly-upsell {
+      background-color: #eac87d;
+      color: black;
+      --p_font-size: 14px;
+      --p_line-height: 100%;
+      --p_font-weight: 900;
+      --p_letter-spacing: 2%;
+      margin-top: -12px;
+      text-align: center;
+      p {
+        text-align: center;
+        margin: 0;
+        padding: 10px;
+      }
+      p::before {
+        content: "";
+        display: inline-block;
+        background-image: url("data:image/svg+xml,%3Csvg%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%2010%2010%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M8.689.225%209.775%201.31%201.086%2010%200%208.914z%22%20fill%3D%22%232a2a2b%22%2F%3E%3Cpath%20d%3D%22M10%200v9.458H8.464V1.536H.542V0z%22%20fill%3D%22%232a2a2b%22%2F%3E%3C%2Fsvg%3E");
+        width: 10px;
+        height: 10px;
+        margin-right: 10px;
+      }
+    }
+
     input[type="checkbox"] + label {
       align-items: flex-start;
       &::before {

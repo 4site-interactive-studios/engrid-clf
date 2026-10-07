@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, October 7, 2026 @ 09:33:05 ET
+ *  Date: Wednesday, October 7, 2026 @ 16:41:37 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8366,6 +8366,29 @@ body[data-engrid-theme=clf][data-engrid-multistep] .form-header,body[data-engrid
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .form-header h2,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .form-header h2{
   margin:16px 0;
+}
+body[data-engrid-theme=clf][data-engrid-multistep] .monthly-upsell,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .monthly-upsell{
+  --p_font-size:14px;
+  --p_line-height:100%;
+  --p_font-weight:900;
+  --p_letter-spacing:2%;
+  background-color:#eac87d;
+  color:#000;
+  margin-top:-12px;
+  text-align:center;
+}
+body[data-engrid-theme=clf][data-engrid-multistep] .monthly-upsell p,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .monthly-upsell p{
+  margin:0;
+  padding:10px;
+  text-align:center;
+}
+body[data-engrid-theme=clf][data-engrid-multistep] .monthly-upsell p:before,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .monthly-upsell p:before{
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg width='10' height='10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8.689.225 9.775 1.31 1.086 10 0 8.914z' fill='%232a2a2b'/%3E%3Cpath d='M10 0v9.458H8.464V1.536H.542V0z' fill='%232a2a2b'/%3E%3C/svg%3E");
+  content:"";
+  display:inline-block;
+  height:10px;
+  margin-right:10px;
+  width:10px;
 }
 body[data-engrid-theme=clf][data-engrid-multistep] input[type=checkbox]+label,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] input[type=checkbox]+label{
   align-items:flex-start;
