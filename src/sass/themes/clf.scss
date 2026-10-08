@@ -1,7 +1,7 @@
 & {
   --color_orangered: #b74c34;
   --error_color: var(--color_orangered);
-  --color_primary: var(--color_orangered);
+  --color_primary: #960f33;
   --color_grey: rgb(166, 166, 166);
   --page-radius: 0.4375rem;
   // TYPOGRAPHY DEFAULT
@@ -40,44 +40,28 @@
   // --a_color_hover: var(--a_color);
   // --a_text-decoration_hover: initial;
 
-  // TYPOGRAPHY INPUT
-  // --input_font-family: var(--default_font-family);
-  // --input_color: #000000;
-  // --input_font-size: var(--root_font-size);
-  // --input_font-weight: initial;
-  // --input_line-height: initial;
-  // --input_background-color: #fafafa;
-  // --input_border-width: 1px;
-  // --input_border-color: #dfdfe1;
-  // --input_border-radius: 6px;
-  // --input_placeholder-color: var(--color_light-gray);
-  // --input_box-shadow: inset 0 2px 2px -1px rgba(74, 74, 104, 0.1);
-
-  // TYPOGRAPHY INPUT:FOCUS
-  // TYPOGRAPHY INPUT:HOVER
-  // --input_color_hover: var(--input_color);
-  // --input_background-color_hover: var(--input_background-color);
-  // --input_border-color_hover: #767677;
-  // --input_border-bottom-color_hover: var(--input_border-color_hover);
-  // --input_box-shadow_hover: --input_box-shadow;
-
   // TYPOGRAPHY BUTTON
   // --button_font-family: var(--default_font-family);
-  --button_font-size: 16px;
-  --button_line-height: 22px;
-  --button_background-color: var(--color_white);
+  --button_font-size: 18px;
+  --button_font-weight: 600;
+  --button_line-height: 100%;
+  --button_border-color: transparent;
+  --button_background-color: #f2f0f1;
   --button_color: var(--color_black);
-  --button_border-color: var(--color_grey);
   --button_border-width: 1px;
   --button_border-radius: 3px;
   --button_background-color_checked: var(--color_primary);
   --button_color_checked: var(--color_white);
   --button_background-color_hover: var(--button_background-color_checked);
-  --button_color_hover: var(--button_color_checked);
+  --button_color_hover: var(--color_white);
   --button_padding: 0.85rem 1rem;
 
   --submit__button_color: var(--color_white);
+  --submit__button_color_hover: var(--color_white);
   --submit__button_background-color: var(--color_primary);
+  --submit__button_font-size: 32px;
+  --submit__button_line-height: 100%;
+  --submit__button_font-weight: 600;
   // --button_font-size: var(--root_font-size);
   // --button_font-weight: initial;
   // --button_line-height: initial;
@@ -103,12 +87,33 @@
   --donation-amount__button_count: 3;
   --give-by-select__button_count: 1;
 
+  --recurring-frequency__button_padding: 19px 16px;
+  --recurring-frequency__button_line-height: 100%;
+
   --radio_background-color_hover: var(--color_primary);
   --checkbox_background-color_hover: var(--color_white);
   --checkbox_border-color_checked: var(--color_primary);
   --checkbox_color_hover: var(--color_white);
   --radio_box-shadow_selected: inset 0 0 0 6px var(--color_primary);
   --radio_background-color_selected: var(--color_white);
+
+  --input_padding: 12px 16px 12px 16px;
+  --input_font-size: 18px;
+  --input_line-height: 100%;
+  --input_font-weight: 400;
+  --input_border-color: #2a2a2b;
+  --input_border-radius: 4px;
+  --input_background-color: #ffffff;
+  --input_placeholder-color: #696a6c;
+
+  --label_font-size: 14px;
+  --label_font-weight: 700;
+  --label_line-height: 100%;
+  --label_letter-spacing: 0.25px;
+
+  .en__submit button {
+    border-radius: 999px;
+  }
 
   .page-alert,
   .body-headerOutside,
@@ -134,6 +139,76 @@
     margin-bottom: 2rem;
     border-bottom-left-radius: var(--page-radius);
     border-bottom-right-radius: var(--page-radius);
+  }
+
+  .radio-to-buttons_recurrfreq {
+    --fields_spacing-inline: 1px;
+  }
+
+  .radio-to-buttons_donationAmt {
+    --fields_spacing-inline: 3px;
+    --fields_spacing-block: 4px;
+    margin-top: 17px;
+    margin-bottom: 24px;
+
+    .en__field--donationAmt.en__field--radio
+      .en__field__item:nth-of-type(n + 4) {
+      --donation-amount__button_count: 2;
+    }
+
+    .en__field--donationAmt
+      div:not(.en__field__item--other)
+      .en__field__label--item::after {
+      font-size: 18px;
+      opacity: 1;
+      margin-left: 0px;
+    }
+    .en__field__item--other {
+      position: relative;
+    }
+
+    &.en__field--withOther--active {
+      .en__field__item--other {
+        color: white;
+      }
+    }
+
+    .en__field__item--other:before {
+      content: "$";
+      font-size: 18px;
+      height: 17px;
+      left: 20px;
+      line-height: 0;
+      position: absolute;
+      top: 48%;
+      width: 9px;
+    }
+
+    .en__field__item--other input {
+      padding: 14.2px 28px;
+      background-color: var(--button_background-color);
+      border: 1px solid var(--button_border-color);
+      color: #000000;
+      box-shadow: none;
+      font-size: 18px;
+      font-weight: 600;
+      &::placeholder {
+        color: #000000;
+      }
+    }
+
+    .en__field__item--other input:hover {
+      background-color: white;
+      border: 1px solid black;
+    }
+
+    .en__field__item--other input:focus {
+      border-color: black;
+    }
+
+    .en__field--withOther--active .en__field__item--other:before {
+      color: white;
+    }
   }
 
   .en__field--giveBySelect {
@@ -177,6 +252,13 @@
       width: auto;
       margin: unset;
       max-height: 28px;
+    }
+  }
+
+  input[type="checkbox"] + label {
+    align-items: flex-start;
+    &::before {
+      top: 0.2em;
     }
   }
 
@@ -352,83 +434,6 @@
         width: 10px;
         height: 10px;
         margin-right: 10px;
-      }
-    }
-
-    input[type="checkbox"] + label {
-      align-items: flex-start;
-      &::before {
-        top: 0.2em;
-      }
-    }
-
-    .radio-to-buttons_recurrfreq {
-      --fields_spacing-inline: 1px;
-    }
-
-    .radio-to-buttons_donationAmt {
-      --fields_spacing-inline: 3px;
-      --fields_spacing-block: 4px;
-      margin-top: 17px;
-      margin-bottom: 24px;
-
-      .en__field--donationAmt.en__field--radio
-        .en__field__item:nth-of-type(n + 4) {
-        --donation-amount__button_count: 2;
-      }
-
-      .en__field--donationAmt
-        div:not(.en__field__item--other)
-        .en__field__label--item::after {
-        font-size: 18px;
-        opacity: 1;
-        margin-left: 0px;
-      }
-      .en__field__item--other {
-        position: relative;
-      }
-
-      &.en__field--withOther--active {
-        .en__field__item--other {
-          color: white;
-        }
-      }
-
-      .en__field__item--other:before {
-        content: "$";
-        font-size: 18px;
-        height: 17px;
-        left: 20px;
-        line-height: 0;
-        position: absolute;
-        top: 48%;
-        width: 9px;
-      }
-
-      .en__field__item--other input {
-        padding: 14.2px 28px;
-        background-color: var(--button_background-color);
-        border: 1px solid var(--button_border-color);
-        color: #000000;
-        box-shadow: none;
-        font-size: 18px;
-        font-weight: 600;
-        &::placeholder {
-          color: #000000;
-        }
-      }
-
-      .en__field__item--other input:hover {
-        background-color: white;
-        border: 1px solid black;
-      }
-
-      .en__field__item--other input:focus {
-        border-color: black;
-      }
-
-      .en__field--withOther--active .en__field__item--other:before {
-        color: white;
       }
     }
 

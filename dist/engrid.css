@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Thursday, October 8, 2026 @ 11:11:52 ET
+ *  Date: Thursday, October 8, 2026 @ 12:24:29 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8192,7 +8192,7 @@ body[data-engrid-debug]:before{
 body[data-engrid-theme=clf]{
   --color_orangered:#b74c34;
   --error_color:var(--color_orangered);
-  --color_primary:var(--color_orangered);
+  --color_primary:#960f33;
   --color_grey:#a6a6a6;
   --page-radius:0.4375rem;
   --default_font-family:"Roboto", var(--native-fonts__sans-serif);
@@ -8204,29 +8204,51 @@ body[data-engrid-theme=clf]{
 }
 body[data-engrid-theme=clf]{
   --engrid__body-main_padding:26px 29px 20px 29px;
-  --button_font-size:16px;
-  --button_line-height:22px;
-  --button_background-color:var(--color_white);
+  --button_font-size:18px;
+  --button_font-weight:600;
+  --button_line-height:100%;
+  --button_border-color:#0000;
+  --button_background-color:#f2f0f1;
   --button_color:var(--color_black);
-  --button_border-color:var(--color_grey);
   --button_border-width:1px;
   --button_border-radius:3px;
   --button_background-color_checked:var(--color_primary);
   --button_color_checked:var(--color_white);
   --button_background-color_hover:var(--button_background-color_checked);
-  --button_color_hover:var(--button_color_checked);
+  --button_color_hover:var(--color_white);
   --button_padding:0.85rem 1rem;
   --submit__button_color:var(--color_white);
+  --submit__button_color_hover:var(--color_white);
   --submit__button_background-color:var(--color_primary);
+  --submit__button_font-size:32px;
+  --submit__button_line-height:100%;
+  --submit__button_font-weight:600;
   --recurring-frequency__button_count:3;
   --donation-amount__button_count:3;
   --give-by-select__button_count:1;
+  --recurring-frequency__button_padding:19px 16px;
+  --recurring-frequency__button_line-height:100%;
   --radio_background-color_hover:var(--color_primary);
   --checkbox_background-color_hover:var(--color_white);
   --checkbox_border-color_checked:var(--color_primary);
   --checkbox_color_hover:var(--color_white);
   --radio_box-shadow_selected:inset 0 0 0 6px var(--color_primary);
   --radio_background-color_selected:var(--color_white);
+  --input_padding:12px 16px 12px 16px;
+  --input_font-size:18px;
+  --input_line-height:100%;
+  --input_font-weight:400;
+  --input_border-color:#2a2a2b;
+  --input_border-radius:4px;
+  --input_background-color:#fff;
+  --input_placeholder-color:#696a6c;
+  --label_font-size:14px;
+  --label_font-weight:700;
+  --label_line-height:100%;
+  --label_letter-spacing:0.25px;
+}
+body[data-engrid-theme=clf] .en__submit button{
+  border-radius:999px;
 }
 body[data-engrid-theme=clf] .body-footer,body[data-engrid-theme=clf] .body-footerOutside,body[data-engrid-theme=clf] .body-headerOutside,body[data-engrid-theme=clf] .content-footer,body[data-engrid-theme=clf] .content-footerSpacer,body[data-engrid-theme=clf] .content-preFooter,body[data-engrid-theme=clf] .page-alert,body[data-engrid-theme=clf] .page-backgroundImageOverlay{
   display:none !important;
@@ -8243,6 +8265,61 @@ body[data-engrid-theme=clf] .body-bottom{
   border-bottom-left-radius:var(--page-radius);
   border-bottom-right-radius:var(--page-radius);
   margin-bottom:2rem;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_recurrfreq{
+  --fields_spacing-inline:1px;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt{
+  --fields_spacing-inline:3px;
+  --fields_spacing-block:4px;
+  margin-bottom:24px;
+  margin-top:17px;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field--donationAmt.en__field--radio .en__field__item:nth-of-type(n+4){
+  --donation-amount__button_count:2;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field--donationAmt div:not(.en__field__item--other) .en__field__label--item:after{
+  font-size:18px;
+  margin-left:0;
+  opacity:1;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field__item--other{
+  position:relative;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt.en__field--withOther--active .en__field__item--other{
+  color:#fff;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field__item--other:before{
+  content:"$";
+  font-size:18px;
+  height:17px;
+  left:20px;
+  line-height:0;
+  position:absolute;
+  top:48%;
+  width:9px;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field__item--other input{
+  background-color:var(--button_background-color);
+  border:1px solid var(--button_border-color);
+  box-shadow:none;
+  color:#000;
+  font-size:18px;
+  font-weight:600;
+  padding:14.2px 28px;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field__item--other input::placeholder{
+  color:#000;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field__item--other input:hover{
+  background-color:#fff;
+  border:1px solid #000;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field__item--other input:focus{
+  border-color:#000;
+}
+body[data-engrid-theme=clf] .radio-to-buttons_donationAmt .en__field--withOther--active .en__field__item--other:before{
+  color:#fff;
 }
 body[data-engrid-theme=clf] .en__field--giveBySelect{
   --button_background-color:var(--color_white);
@@ -8278,6 +8355,12 @@ body[data-engrid-theme=clf] .en__field--giveBySelect label img{
   margin:unset;
   max-height:28px;
   width:auto;
+}
+body[data-engrid-theme=clf] input[type=checkbox]+label{
+  align-items:flex-start;
+}
+body[data-engrid-theme=clf] input[type=checkbox]+label:before{
+  top:.2em;
 }
 body[data-engrid-theme=clf][data-engrid-payment-type=ach]:not(#en__pagebuilder):not([data-engrid-debug]) .showif-ach-selected{
   display:block;
@@ -8389,67 +8472,6 @@ body[data-engrid-theme=clf][data-engrid-multistep] .monthly-upsell p:before,body
   height:10px;
   margin-right:10px;
   width:10px;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] input[type=checkbox]+label,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] input[type=checkbox]+label{
-  align-items:flex-start;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] input[type=checkbox]+label:before,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] input[type=checkbox]+label:before{
-  top:.2em;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_recurrfreq,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_recurrfreq{
-  --fields_spacing-inline:1px;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt{
-  --fields_spacing-inline:3px;
-  --fields_spacing-block:4px;
-  margin-bottom:24px;
-  margin-top:17px;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field--donationAmt.en__field--radio .en__field__item:nth-of-type(n+4),body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field--donationAmt.en__field--radio .en__field__item:nth-of-type(n+4){
-  --donation-amount__button_count:2;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field--donationAmt div:not(.en__field__item--other) .en__field__label--item:after,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field--donationAmt div:not(.en__field__item--other) .en__field__label--item:after{
-  font-size:18px;
-  margin-left:0;
-  opacity:1;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field__item--other,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field__item--other{
-  position:relative;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt.en__field--withOther--active .en__field__item--other,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt.en__field--withOther--active .en__field__item--other{
-  color:#fff;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field__item--other:before,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field__item--other:before{
-  content:"$";
-  font-size:18px;
-  height:17px;
-  left:20px;
-  line-height:0;
-  position:absolute;
-  top:48%;
-  width:9px;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field__item--other input,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field__item--other input{
-  background-color:var(--button_background-color);
-  border:1px solid var(--button_border-color);
-  box-shadow:none;
-  color:#000;
-  font-size:18px;
-  font-weight:600;
-  padding:14.2px 28px;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field__item--other input::placeholder,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field__item--other input::placeholder{
-  color:#000;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field__item--other input:hover,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field__item--other input:hover{
-  background-color:#fff;
-  border:1px solid #000;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field__item--other input:focus,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field__item--other input:focus{
-  border-color:#000;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .radio-to-buttons_donationAmt .en__field--withOther--active .en__field__item--other:before,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .radio-to-buttons_donationAmt .en__field--withOther--active .en__field__item--other:before{
-  color:#fff;
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect{
   --button_background-color:var(--color_black);
