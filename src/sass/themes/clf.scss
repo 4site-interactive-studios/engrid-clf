@@ -450,7 +450,7 @@
         filter: invert(100%);
       }
       label .google-pay {
-        filter: invert(0%);
+        filter: unset !important;
       }
     }
 
