@@ -1217,77 +1217,60 @@ export default class DonationLightboxForm {
         }
       }
     }
-    // Get every element that has the CSS class giveBySelect-*
-    const giveBySelectItems = document.querySelectorAll(
-      "[class*='giveBySelect-']"
-    );
+    // Get every element that has a giveBySelect-* class, excluding those in
+    // digital-wallets-wrapper (its children are controlled by EN's wallet JS)
+    const giveBySelectItems = Array.from(
+      document.querySelectorAll("[class*='giveBySelect-']")
+    ).filter((item) => !item.closest(".digital-wallets-wrapper"));
     console.log(
       `Found ${giveBySelectItems.length} total giveBySelect- elements`
     );
 
-    // Create a Set of sections that have giveBySelect- elements (excluding those in digital-wallets-wrapper)
-    const sectionsWithGiveBySelect = new Set();
+    // An element can carry several giveBySelect-* classes (e.g.
+    // "giveBySelect-Card giveBySelect-paypaltouch giveBySelect-ACH"); it is
+    // visible when ANY of them matches the selected payment type
+    const getGiveBySelectValues = (item) =>
+      (item.className.match(/giveBySelect-[^\s]+/gi) || []).map((cls) =>
+        cls.replace(/giveBySelect-/i, "").toLowerCase()
+      );
+    const matchesPaymentType = (item) =>
+      getGiveBySelectValues(item).includes(ptValue);
+
+    // Element-level visibility, mirroring EN core's giveBySelect behavior
     giveBySelectItems.forEach((item) => {
-      // Skip if the element is inside digital-wallets-wrapper
-      if (item.closest(".digital-wallets-wrapper")) {
-        console.log(
-          `Skipping giveBySelect- element in digital-wallets-wrapper: ${item.className}`
-        );
-        return;
-      }
-      const section = this.getSectionId(item);
-      if (section !== false) {
-        sectionsWithGiveBySelect.add(section);
-        console.log(
-          `Section ${section} has giveBySelect- element: ${item.className}`
-        );
-      }
-    });
-    console.log(
-      `Found ${sectionsWithGiveBySelect.size} sections with giveBySelect- elements`
-    );
-
-    // First, handle sections without giveBySelect- elements
-    this.sections.forEach((section, sectionId) => {
-      if (!sectionsWithGiveBySelect.has(sectionId)) {
-        section.style.display = "block";
-        console.log(`Showing section ${sectionId} (no giveBySelect elements)`);
-      }
+      const matches = matchesPaymentType(item);
+      console.log(
+        `${matches ? "Showing" : "Hiding"} element: ${item.className}`
+      );
+      item.style.display = matches ? "" : "none";
     });
 
-    // Then, handle sections with giveBySelect- elements
+    // Section-level visibility: hide a section only when it has no content
+    // visible for the selected payment type. Sections with unrestricted
+    // content (e.g. the email field) must stay navigable for every type.
     const lastSection = this.sections[this.sections.length - 1];
-    sectionsWithGiveBySelect.forEach((sectionId) => {
-      const section = this.sections[sectionId];
+    this.sections.forEach((section, sectionId) => {
       if (section === lastSection) {
         section.style.display = "block";
         return;
       }
-      // Only get giveBySelect- elements that are not in digital-wallets-wrapper
-      const sectionItems = Array.from(
-        section.querySelectorAll("[class*='giveBySelect-']")
-      ).filter((item) => !item.closest(".digital-wallets-wrapper"));
-      console.log(
-        `Section ${sectionId} has ${sectionItems.length} giveBySelect- elements (excluding digital-wallets-wrapper)`
+      const sectionGiveBySelectItems = giveBySelectItems.filter((item) =>
+        section.contains(item)
       );
-
-      let shouldShow = false;
-
-      sectionItems.forEach((item) => {
-        // Get the value of the class
-        let value = item.className.split("giveBySelect-")[1];
-        // Get the value until the next space
-        value = value.split(" ")[0];
-        console.log(
-          `Checking giveBySelect- element in section ${sectionId}: ${value} against payment type: ${ptValue}`
-        );
-        // If the value is the same as the payment type, show the section
-        if (value.toLowerCase() === ptValue) {
-          shouldShow = true;
-          console.log(`Match found for section ${sectionId}`);
-        }
-      });
-
+      if (sectionGiveBySelectItems.length === 0) {
+        section.style.display = "block";
+        console.log(`Showing section ${sectionId} (no giveBySelect elements)`);
+        return;
+      }
+      const anyMatch = sectionGiveBySelectItems.some(matchesPaymentType);
+      const hasUnrestrictedFormBlock = Array.from(
+        section.querySelectorAll(".en__component--formblock")
+      ).some(
+        (formBlock) =>
+          !formBlock.closest(".digital-wallets-wrapper") &&
+          getGiveBySelectValues(formBlock).length === 0
+      );
+      const shouldShow = anyMatch || hasUnrestrictedFormBlock;
       section.style.display = shouldShow ? "block" : "none";
       console.log(
         `${
