@@ -1087,19 +1087,12 @@ export default class DonationLightboxForm {
           ".en__field--giveBySelect, .give-by-select-wrapper"
         );
         if (paymentSelector) {
-          const label = button.closest("label");
-          const item = button.closest(".en__field__item");
-          const radio =
-            (button.type === "radio" && button) ||
-            (label &&
-              (label.control || label.querySelector("input[type='radio']"))) ||
-            (item &&
-              item.querySelector("input[name='transaction.giveBySelect']"));
-          // If the payment option is already selected, clicking it fires no
-          // change event, so navigate directly instead of waiting for one.
-          // Otherwise let the change handler drive navigation.
-          if (!radio || radio.checked) {
-            e.preventDefault();
+          // Payment option clicks: defer navigation so the giveBySelect change
+          // event runs first (showHideDynamicSection updates which sections are
+          // visible), then navigate to the step declared on the button. The
+          // change handler does not auto-advance for these radios, so this is
+          // the single source of navigation. Mirrors multistep-form.ts.
+          window.setTimeout(() => {
             const targetStep = parseInt(
               button.dataset.multistepChangeStep,
               10
@@ -1113,7 +1106,7 @@ export default class DonationLightboxForm {
             ) {
               this.scrollToSection(targetSectionId, currentSectionId);
             }
-          }
+          }, 0);
           return;
         }
         e.preventDefault();
@@ -1161,6 +1154,16 @@ export default class DonationLightboxForm {
           // Only auto-advance on real user interaction; synthetic change events
           // dispatched by showHideDynamicSection must not scroll the form
           if (!event.isTrusted) return;
+          // When the payment options carry data-multistep-change-step, the
+          // click handler drives navigation to the declared step instead, so
+          // advancing here would double-navigate past the target section
+          if (
+            item
+              .closest(".en__field--giveBySelect, .give-by-select-wrapper")
+              ?.querySelector("[data-multistep-change-step]")
+          ) {
+            return;
+          }
           window.setTimeout(() => {
             this.scrollToNextSection();
           }, 100);

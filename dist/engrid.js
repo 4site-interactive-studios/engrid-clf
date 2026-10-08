@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, October 7, 2026 @ 16:41:37 ET
+ *  Date: Thursday, October 8, 2026 @ 10:33:04 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28799,14 +28799,12 @@ class DonationLightboxForm {
       button.addEventListener("click", e => {
         const paymentSelector = button.closest(".en__field--giveBySelect, .give-by-select-wrapper");
         if (paymentSelector) {
-          const label = button.closest("label");
-          const item = button.closest(".en__field__item");
-          const radio = button.type === "radio" && button || label && (label.control || label.querySelector("input[type='radio']")) || item && item.querySelector("input[name='transaction.giveBySelect']");
-          // If the payment option is already selected, clicking it fires no
-          // change event, so navigate directly instead of waiting for one.
-          // Otherwise let the change handler drive navigation.
-          if (!radio || radio.checked) {
-            e.preventDefault();
+          // Payment option clicks: defer navigation so the giveBySelect change
+          // event runs first (showHideDynamicSection updates which sections are
+          // visible), then navigate to the step declared on the button. The
+          // change handler does not auto-advance for these radios, so this is
+          // the single source of navigation. Mirrors multistep-form.ts.
+          window.setTimeout(() => {
             const targetStep = parseInt(button.dataset.multistepChangeStep, 10);
             if (isNaN(targetStep)) return;
             const targetSectionId = targetStep - 1;
@@ -28814,7 +28812,7 @@ class DonationLightboxForm {
             if (targetSectionId <= currentSectionId || this.validateForm(currentSectionId)) {
               this.scrollToSection(targetSectionId, currentSectionId);
             }
-          }
+          }, 0);
           return;
         }
         e.preventDefault();
@@ -28848,6 +28846,12 @@ class DonationLightboxForm {
           // Only auto-advance on real user interaction; synthetic change events
           // dispatched by showHideDynamicSection must not scroll the form
           if (!event.isTrusted) return;
+          // When the payment options carry data-multistep-change-step, the
+          // click handler drives navigation to the declared step instead, so
+          // advancing here would double-navigate past the target section
+          if (item.closest(".en__field--giveBySelect, .give-by-select-wrapper")?.querySelector("[data-multistep-change-step]")) {
+            return;
+          }
           window.setTimeout(() => {
             this.scrollToNextSection();
           }, 100);
