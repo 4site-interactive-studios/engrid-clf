@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Thursday, October 8, 2026 @ 10:47:34 ET
+ *  Date: Thursday, October 8, 2026 @ 11:05:57 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -28264,9 +28264,7 @@ class DonationLightboxForm {
         const ccnumberSection = this.getSectionId(ccnumberBlock);
         if (ccnumberSection == key) {
           // Set payment type to credit card if we're on the credit card section
-          const paymentType = document.querySelector("#en__field_transaction_paymenttype");
-          paymentType.value = "card";
-          paymentType.dispatchEvent(new Event("change"));
+          this.setCardPaymentType();
           // Uncheck other payment options
           document.querySelectorAll(".en__field--giveBySelect input[type='radio']").forEach(el => {
             el.checked = false;
@@ -28354,6 +28352,12 @@ class DonationLightboxForm {
   scrollToSection(sectionId, fromSectionId) {
     console.log("DonationLightboxForm: scrollToSection", sectionId);
     const section = document.querySelector(`[data-section-id="${sectionId}"]`);
+    // Reset the payment method to "card" when landing on the section that
+    // contains the payment method selector, so a previously selected
+    // wallet/bank option doesn't stick when revisiting the payment step
+    if (section && section.querySelector("input[name='transaction.giveBySelect'], .payment-options")) {
+      this.resetPaymentToCard();
+    }
     // Check if we're scrolling to an invisible section
     if (section && !this.isVisible(section)) {
       console.log("DonationLightboxForm: scrollToSection: Section is not visible");
@@ -28369,6 +28373,7 @@ class DonationLightboxForm {
     }
     if (this.sections[sectionId]) {
       console.log(section);
+      this.setCardPaymentTypeOnCardSection(sectionId);
       this.setCurrentSection(sectionId);
       console.log("Changed current section ID to", sectionId);
       this.sections[sectionId].scrollIntoView({
@@ -28376,6 +28381,54 @@ class DonationLightboxForm {
         inline: "start"
       });
     }
+  }
+  // When the section containing the card fields is visited, set the payment
+  // type to card so the card fields are revealed. Mirrors
+  // setGiveBySelectToCardOnStep2 in multistep-form.ts
+  setCardPaymentTypeOnCardSection(sectionId) {
+    const ccnumberBlock = document.querySelector(".en__field--ccnumber");
+    if (!ccnumberBlock) return;
+    if (Number(this.getSectionId(ccnumberBlock)) !== Number(sectionId)) return;
+    const cardRadio = Array.from(document.getElementsByName("transaction.giveBySelect")).find(radio => radio.value.toLowerCase() === "card");
+    console.log("DonationLightboxForm: Card section visited, setting card");
+    if (cardRadio && !cardRadio.checked) {
+      cardRadio.click();
+    } else {
+      this.setCardPaymentType();
+      this.showHideDynamicSection("card");
+    }
+  }
+  // Set the transaction.paymenttype field to the card option, mirroring
+  // ENGrid.setPaymentType("card"): the field can be a <select>, so assigning
+  // value="card" silently fails when no option has that exact value
+  setCardPaymentType() {
+    const paymentType = document.querySelector("#en__field_transaction_paymenttype");
+    if (!paymentType) return;
+    const cardOption = Array.from(paymentType.options || []).find(option => ["card", "creditcard", "visa", "vi"].includes(option.value.toLowerCase()));
+    if (cardOption) {
+      cardOption.selected = true;
+      paymentType.value = cardOption.value;
+    } else {
+      paymentType.value = "card";
+    }
+    paymentType.dispatchEvent(new Event("change"));
+  }
+  // Reset the payment method back to "card" when the payment step is
+  // (re)visited: set the transaction.paymenttype field, silently clear any
+  // selected giveBySelect radio (checking the card one if it exists), and
+  // restore card section visibility. Radio change events must not be
+  // dispatched here because their handler auto-advances to the next section.
+  resetPaymentToCard() {
+    const paymentType = document.querySelector("#en__field_transaction_paymenttype");
+    if (!paymentType) return;
+    const isCard = ["card", "creditcard", "visa", "vi", "mastercard", "mc", "amex", "ax", "discover", "di", "diners", "dc", "jcb", "jc"].includes(paymentType.value.toLowerCase());
+    const checkedNonCard = Array.from(document.querySelectorAll("input[name='transaction.giveBySelect']:checked")).some(radio => radio.value.toLowerCase() !== "card");
+    if (isCard && !checkedNonCard) return;
+    this.setCardPaymentType();
+    document.querySelectorAll("input[name='transaction.giveBySelect']").forEach(radio => {
+      radio.checked = radio.value.toLowerCase() === "card";
+    });
+    this.showHideDynamicSection("card");
   }
   scrollToNextSection() {
     console.log("DonationLightboxForm: scrollToNextSection", this.currentSectionId + 1);
@@ -28837,10 +28890,7 @@ class DonationLightboxForm {
         item.addEventListener("change", event => {
           this.showHideDynamicSection(item.value.toLowerCase());
           if (item.value === "card") {
-            const paymentType = document.querySelector("#en__field_transaction_paymenttype");
-            if (paymentType) {
-              paymentType.value = "card";
-            }
+            this.setCardPaymentType();
           }
           console.log(`Payment type changed to: ${item.value.toLowerCase()}`);
           // Only auto-advance on real user interaction; synthetic change events
@@ -28853,7 +28903,8 @@ class DonationLightboxForm {
             return;
           }
           window.setTimeout(() => {
-            this.scrollToNextSection();
+            const sectionId = parseInt(item.closest("[data-section-id]").dataset.sectionId);
+            this.scrollToSection(sectionId + 1, sectionId);
           }, 100);
         });
       });
@@ -28899,7 +28950,24 @@ class DonationLightboxForm {
     giveBySelectItems.forEach(item => {
       const matches = matchesPaymentType(item);
       console.log(`${matches ? "Showing" : "Hiding"} element: ${item.className}`);
+      // ENgrid's ShowHideRadioCheckboxes also toggles these blocks, but it
+      // can only show blocks matching a checked radio - so mirror its
+      // show/hide here to keep the right blocks visible
       item.style.display = matches ? "" : "none";
+      const input = item.querySelector("input");
+      if (input) {
+        input.setAttribute("aria-required", matches ? "true" : "false");
+      }
+      if (matches) {
+        // Restore values stashed by ENgrid's hide (data-value), the same
+        // way its show() does
+        item.querySelectorAll("input, select, textarea").forEach(field => {
+          const stashed = field.getAttribute("data-value");
+          if (stashed !== null && !field.value) {
+            field.value = stashed;
+          }
+        });
+      }
     });
 
     // Section-level visibility: hide a section only when it has no content
@@ -28919,7 +28987,10 @@ class DonationLightboxForm {
       }
       const anyMatch = sectionGiveBySelectItems.some(matchesPaymentType);
       const hasUnrestrictedFormBlock = Array.from(section.querySelectorAll(".en__component--formblock")).some(formBlock => !formBlock.closest(".digital-wallets-wrapper") && getGiveBySelectValues(formBlock).length === 0);
-      const shouldShow = anyMatch || hasUnrestrictedFormBlock;
+      // Never hide the section that contains the payment method selector
+      // itself, or the user can't switch back to a different payment type
+      const hasPaymentSelector = section.querySelector(".en__field--giveBySelect, input[name='transaction.giveBySelect']");
+      const shouldShow = anyMatch || hasUnrestrictedFormBlock || !!hasPaymentSelector;
       section.style.display = shouldShow ? "block" : "none";
       console.log(`${shouldShow ? "Showing" : "Hiding"} section ${sectionId} (payment type: ${ptValue})`);
     });
