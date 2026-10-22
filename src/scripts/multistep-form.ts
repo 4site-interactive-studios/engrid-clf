@@ -67,7 +67,6 @@ export default class MultistepForm {
     this.addStepDataAttributes();
     this.addBackButtonToFinalStep();
     this.addEventListeners();
-    this.renderOptIns();
     this.applyColorOverride();
     this.handleVgsTokenizationOnSubmit();
   }
@@ -124,26 +123,6 @@ export default class MultistepForm {
     if (color) {
       document.body.style.setProperty("--color_primary", color);
       this.logger.log(`Overriding --color_primary with ${color}`);
-    }
-  }
-
-  private renderOptIns() {
-    // if .opt-ins
-    if (document.querySelector(".opt-ins")) {
-      // if label for en__field_supporter_questions_164260 - Change text content to "Email"
-      const emailLabel = document.querySelector(
-        "label[for='en__field_supporter_questions_164260']"
-      );
-      if (emailLabel) {
-        emailLabel.textContent = "Email";
-      }
-      // if label for en__field_supporter_questions_707325 - Change text content to "Text Message"
-      const textMessageLabel = document.querySelector(
-        "label[for='en__field_supporter_questions_707325']"
-      );
-      if (textMessageLabel) {
-        textMessageLabel.textContent = "Text Message";
-      }
     }
   }
 

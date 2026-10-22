@@ -65,5 +65,22 @@ export const customScript = function (App, EnForm) {
       );
     }
   }
+
+  // Rename opt-in field labels: Email and Text Message
+  if (document.querySelector(".opt-ins")) {
+    const emailLabel = document.querySelector(
+      "label[for='en__field_supporter_questions_164260']"
+    );
+    if (emailLabel) {
+      emailLabel.textContent = "Email";
+    }
+    const textMessageLabel = document.querySelector(
+      "label[for='en__field_supporter_questions_707325']"
+    );
+    if (textMessageLabel) {
+      textMessageLabel.textContent = "Text Message";
+    }
+  }
+
   App.setBodyData("client-js-loading", "finished");
 };

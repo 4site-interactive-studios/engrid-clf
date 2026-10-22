@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Thursday, October 8, 2026 @ 12:24:29 ET
+ *  Date: Thursday, October 22, 2026 @ 12:12:05 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -27930,6 +27930,18 @@ const customScript = function (App, EnForm) {
       cardsElement.setAttribute("src", "https://acb0a5d73b67fccd4bbe-c2d8138f0ea10a18dd4c43ec3aa4240a.ssl.cf5.rackcdn.com/10054/payment-type-cards.png?v=1780423619000");
     }
   }
+
+  // Rename opt-in field labels: Email and Text Message
+  if (document.querySelector(".opt-ins")) {
+    const emailLabel = document.querySelector("label[for='en__field_supporter_questions_164260']");
+    if (emailLabel) {
+      emailLabel.textContent = "Email";
+    }
+    const textMessageLabel = document.querySelector("label[for='en__field_supporter_questions_707325']");
+    if (textMessageLabel) {
+      textMessageLabel.textContent = "Text Message";
+    }
+  }
   App.setBodyData("client-js-loading", "finished");
 };
 // EXTERNAL MODULE: ./node_modules/smoothscroll-polyfill/dist/smoothscroll.js
@@ -28124,7 +28136,6 @@ class DonationLightboxForm {
     this.putArrowUpSVG();
     this.bounceArrow(this.frequency.getInstance().frequency);
     this.addEvents();
-    this.renderOptIns();
     this.changeSubmitButton();
     this.sendMessage("status", "loaded");
     // Check if theres a color value in the url
@@ -28155,21 +28166,6 @@ class DonationLightboxForm {
         }
       }
     });
-  }
-  renderOptIns() {
-    // if .opt-ins
-    if (document.querySelector(".opt-ins")) {
-      // if label for en__field_supporter_questions_164260 - Change text content to "Email"
-      const emailLabel = document.querySelector("label[for='en__field_supporter_questions_164260']");
-      if (emailLabel) {
-        emailLabel.textContent = "Email";
-      }
-      // if label for en__field_supporter_questions_707325 - Change text content to "Text Message"
-      const textMessageLabel = document.querySelector("label[for='en__field_supporter_questions_707325']");
-      if (textMessageLabel) {
-        textMessageLabel.textContent = "Text Message";
-      }
-    }
   }
   // Send iframe message to parent
   sendMessage(key, value) {
@@ -29070,7 +29066,6 @@ class MultistepForm {
     this.addStepDataAttributes();
     this.addBackButtonToFinalStep();
     this.addEventListeners();
-    this.renderOptIns();
     this.applyColorOverride();
     this.handleVgsTokenizationOnSubmit();
   }
@@ -29126,21 +29121,6 @@ class MultistepForm {
     if (color) {
       document.body.style.setProperty("--color_primary", color);
       this.logger.log(`Overriding --color_primary with ${color}`);
-    }
-  }
-  renderOptIns() {
-    // if .opt-ins
-    if (document.querySelector(".opt-ins")) {
-      // if label for en__field_supporter_questions_164260 - Change text content to "Email"
-      const emailLabel = document.querySelector("label[for='en__field_supporter_questions_164260']");
-      if (emailLabel) {
-        emailLabel.textContent = "Email";
-      }
-      // if label for en__field_supporter_questions_707325 - Change text content to "Text Message"
-      const textMessageLabel = document.querySelector("label[for='en__field_supporter_questions_707325']");
-      if (textMessageLabel) {
-        textMessageLabel.textContent = "Text Message";
-      }
     }
   }
   addStepDataAttributes() {

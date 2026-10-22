@@ -112,7 +112,7 @@
   & {
     // --button_font-size: var(--root_font-size);
     // --engrid__body-main_padding: 0;
-
+    --recurring-frequency__button_padding: 19px 8px;
     .mt-10 {
       margin-top: 10px;
     }
@@ -216,13 +216,12 @@
     // input:hover {
     //   border-color: var(--color_primary);
     // }
-    // Zoom Out If Screen Is 320px or less
-    @media only screen and (max-width: 320px) {
-      #engrid {
-        zoom: 0.85;
-      }
+    // NOTE: A legacy "zoom: 0.85" rule for <=320px screens was removed. It
+    // shrank the whole form to 85% of its allotted area on promo plugin
+    // (embedded) multistep pages; sections now size fluidly instead.
+    @media (max-width: 300px) {
+      --recurring-frequency__button_font-size: 14px;
     }
-
     // .monthly-upsell-message {
     //   position: relative;
     //   p {
@@ -452,7 +451,9 @@
 
         & > .en__component {
           height: 100vh;
-          width: 360px;
+          // Fill the available width on narrow screens/iframes instead of
+          // overflowing (the removed <=320px zoom hack used to mask this)
+          width: min(360px, 100vw);
           padding: 0px 0px 20px 0px;
           // scroll-snap-align: start;
 
