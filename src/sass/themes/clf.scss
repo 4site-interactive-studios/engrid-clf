@@ -301,6 +301,13 @@
 
   @mixin until-mobile-l {
     // STYLES
+    .monthly-upsell {
+      --p_font-size: 11px;
+      --p_line-height: 100%;
+      --p_font-weight: 900;
+      --p_letter-spacing: 2%;
+    }
+    --recurring-frequency__button_font-size: 14px;
   }
 
   @mixin from-mobile-l {
@@ -453,11 +460,13 @@
     .en__field--recurrfreq
       .en__field__element
       .en__field__item
-      input:focus + label,
+      input:focus
+      + label,
     .en__field--donationAmt
       .en__field__element
       .en__field__item
-      input:focus + label {
+      input:focus
+      + label {
       outline-offset: 0px;
     }
 

@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Monday, October 26, 2026 @ 11:38:26 ET
+ *  Date: Wednesday, October 28, 2026 @ 17:01:10 ET
  *  By: nick
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.5
@@ -8393,6 +8393,17 @@ body[data-engrid-theme=clf] .sms-disclaimer{
 }
 body[data-engrid-theme=clf] .sms-disclaimer p{
   margin:0;
+}
+@media (max-width:425px){
+  body[data-engrid-theme=clf][data-engrid-layout] .monthly-upsell{
+    --p_font-size:11px;
+    --p_line-height:100%;
+    --p_font-weight:900;
+    --p_letter-spacing:2%;
+  }
+  body[data-engrid-theme=clf][data-engrid-layout]{
+    --recurring-frequency__button_font-size:14px;
+  }
 }
 body[data-engrid-theme=clf][data-engrid-payment-type=ach]:not(#en__pagebuilder):not([data-engrid-debug]) .showif-ach-selected{
   display:block;
