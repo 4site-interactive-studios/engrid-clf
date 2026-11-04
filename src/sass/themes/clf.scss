@@ -145,6 +145,22 @@
     --fields_spacing-inline: 1px;
   }
 
+  .monthly-upsell {
+    background-color: #eac87d;
+    color: black;
+    --p_font-size: 14px;
+    --p_line-height: 100%;
+    --p_font-weight: 900;
+    --p_letter-spacing: 2%;
+    margin-top: -12px;
+    text-align: center;
+    p {
+      text-align: center;
+      margin: 0;
+      padding: 10px;
+    }
+  }
+
   .radio-to-buttons_donationAmt {
     --fields_spacing-inline: 3px;
     --fields_spacing-block: 4px;
@@ -471,19 +487,7 @@
     }
 
     .monthly-upsell {
-      background-color: #eac87d;
-      color: black;
       --p_font-size: 14px;
-      --p_line-height: 100%;
-      --p_font-weight: 900;
-      --p_letter-spacing: 2%;
-      margin-top: -12px;
-      text-align: center;
-      p {
-        text-align: center;
-        margin: 0;
-        padding: 10px;
-      }
     }
 
     .en__field--giveBySelect {
