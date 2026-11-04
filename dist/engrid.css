@@ -19,8 +19,8 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Tuesday, November 3, 2026 @ 13:35:36 ET
- *  By: nick
+ *  Date: Wednesday, November 4, 2026 @ 09:41:46 ET
+ *  By: pedroluan
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.7
  *
@@ -8269,6 +8269,21 @@ body[data-engrid-theme=clf] .body-bottom{
 body[data-engrid-theme=clf] .radio-to-buttons_recurrfreq{
   --fields_spacing-inline:1px;
 }
+body[data-engrid-theme=clf] .monthly-upsell{
+  --p_font-size:14px;
+  --p_line-height:100%;
+  --p_font-weight:900;
+  --p_letter-spacing:2%;
+  background-color:#eac87d;
+  color:#000;
+  margin-top:-12px;
+  text-align:center;
+}
+body[data-engrid-theme=clf] .monthly-upsell p{
+  margin:0;
+  padding:10px;
+  text-align:center;
+}
 body[data-engrid-theme=clf] .radio-to-buttons_donationAmt{
   --fields_spacing-inline:3px;
   --fields_spacing-block:4px;
@@ -8498,18 +8513,6 @@ body[data-engrid-theme=clf][data-engrid-multistep] .en__field--donationAmt .en__
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .monthly-upsell,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .monthly-upsell{
   --p_font-size:14px;
-  --p_line-height:100%;
-  --p_font-weight:900;
-  --p_letter-spacing:2%;
-  background-color:#eac87d;
-  color:#000;
-  margin-top:-12px;
-  text-align:center;
-}
-body[data-engrid-theme=clf][data-engrid-multistep] .monthly-upsell p,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .monthly-upsell p{
-  margin:0;
-  padding:10px;
-  text-align:center;
 }
 body[data-engrid-theme=clf][data-engrid-multistep] .en__field--giveBySelect,body[data-engrid-theme=clf][data-engrid-subtheme=multistep] .en__field--giveBySelect{
   --button_background-color:var(--color_black);
