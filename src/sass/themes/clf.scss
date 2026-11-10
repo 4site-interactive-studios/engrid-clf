@@ -22,6 +22,8 @@
   // --h1_font-size: calc(var(--root_font-size) * var(--scale-up_160pct));
   // --h1_font-weight: initial;
   // --h1_line-height: initial;
+  --h1_font-size: calc(var(--default_font-size) * 2); // 32px, igual à 55309
+  --h1_line-height: 1.4;
 
   // TYPOGRAPHY P
   // --p_font-family: var(--default_font-family);

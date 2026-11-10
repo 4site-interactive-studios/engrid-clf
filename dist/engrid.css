@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, November 4, 2026 @ 13:42:37 ET
+ *  Date: Tuesday, November 10, 2026 @ 08:02:50 ET
  *  By: pedroluan
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.7
@@ -8204,6 +8204,8 @@ body[data-engrid-theme=clf]{
 }
 body[data-engrid-theme=clf]{
   --engrid__body-main_padding:26px 29px 20px 29px;
+  --h1_font-size:calc(var(--default_font-size)*2);
+  --h1_line-height:1.4;
   --button_font-size:18px;
   --button_font-weight:600;
   --button_line-height:100%;
