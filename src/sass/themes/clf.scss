@@ -280,6 +280,25 @@
     }
   }
 
+  .en__field--inmem > .en__field__label {
+    font-family: var(--h3_font-family);
+    color: var(--h3_color);
+    font-size: var(--h3_font-size);
+    line-height: var(--h3_line-height);
+    letter-spacing: normal;
+    text-transform: var(--h3_text-transform);
+    margin-top: calc(2rem * var(--scale-down_40pct));
+    margin-bottom: calc(1rem * var(--scale-down_40pct));
+  }
+
+  .gift-summary {
+    border-color: #B74C34;
+    border-style: dashed;
+    border-width: 1px 0;
+    margin: 30px auto;
+    padding: 20px !important;
+  }
+
   .opt-ins-header p {
     font-weight: 600;
     font-size: 16px;
