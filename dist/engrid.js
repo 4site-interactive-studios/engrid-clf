@@ -17,8 +17,8 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Tuesday, November 3, 2026 @ 13:35:36 ET
- *  By: nick
+ *  Date: Tuesday, November 10, 2026 @ 13:01:44 ET
+ *  By: pedroluan
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.7
  *
@@ -29529,6 +29529,16 @@ const options = {
   SkipToMainContentLink: true,
   SrcDefer: true,
   ProgressBar: true,
+  TidyContact: {
+    cid: "24367f68-98c1-46b0-9851-0feddd9bb15d",
+    record_field: "supporter.NOT_TAGGED_38",
+    date_field: "supporter.NOT_TAGGED_39",
+    status_field: "supporter.NOT_TAGGED_40",
+    country_fallback: "USA",
+    us_zip_divider: "-",
+    phone_enable: true,
+    phone_preferred_countries: ["us"]
+  },
   Debug: App.getUrlParameter("debug") == "true" ? true : false,
   onLoad: () => {
     window.DonationLightboxForm = DonationLightboxForm;

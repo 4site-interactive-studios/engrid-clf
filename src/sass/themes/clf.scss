@@ -22,6 +22,8 @@
   // --h1_font-size: calc(var(--root_font-size) * var(--scale-up_160pct));
   // --h1_font-weight: initial;
   // --h1_line-height: initial;
+  --h1_font-size: calc(var(--default_font-size) * 2); // 32px, igual à 55309
+  --h1_line-height: 1.4;
 
   // TYPOGRAPHY P
   // --p_font-family: var(--default_font-family);
@@ -99,7 +101,7 @@
 
   --input_padding: 12px 16px 12px 16px;
   --input_font-size: 18px;
-  --input_line-height: 100%;
+  --input_line-height: normal;
   --input_font-weight: 400;
   --input_border-color: #2a2a2b;
   --input_border-radius: 4px;
@@ -143,6 +145,22 @@
 
   .radio-to-buttons_recurrfreq {
     --fields_spacing-inline: 1px;
+  }
+
+  .monthly-upsell {
+    background-color: #eac87d;
+    color: black;
+    --p_font-size: 14px;
+    --p_line-height: 100%;
+    --p_font-weight: 900;
+    --p_letter-spacing: 2%;
+    margin-top: -12px;
+    text-align: center;
+    p {
+      text-align: center;
+      margin: 0;
+      padding: 10px;
+    }
   }
 
   .radio-to-buttons_donationAmt {
@@ -260,6 +278,25 @@
     &::before {
       top: 0.2em;
     }
+  }
+
+  .en__field--inmem > .en__field__label {
+    font-family: var(--h3_font-family);
+    color: var(--h3_color);
+    font-size: var(--h3_font-size);
+    line-height: var(--h3_line-height);
+    letter-spacing: normal;
+    text-transform: var(--h3_text-transform);
+    margin-top: calc(2rem * var(--scale-down_40pct));
+    margin-bottom: calc(1rem * var(--scale-down_40pct));
+  }
+
+  .gift-summary {
+    border-color: #B74C34;
+    border-style: dashed;
+    border-width: 1px 0;
+    margin: 30px auto;
+    padding: 20px !important;
   }
 
   .opt-ins-header p {
@@ -394,7 +431,7 @@
 
     --input_padding: 12px 16px 12px 16px;
     --input_font-size: 18px;
-    --input_line-height: 100%;
+    --input_line-height: normal;
     --input_font-weight: 400;
     --input_border-color: #2a2a2b;
     --input_border-radius: 4px;
@@ -471,19 +508,7 @@
     }
 
     .monthly-upsell {
-      background-color: #eac87d;
-      color: black;
       --p_font-size: 14px;
-      --p_line-height: 100%;
-      --p_font-weight: 900;
-      --p_letter-spacing: 2%;
-      margin-top: -12px;
-      text-align: center;
-      p {
-        text-align: center;
-        margin: 0;
-        padding: 10px;
-      }
     }
 
     .en__field--giveBySelect {
