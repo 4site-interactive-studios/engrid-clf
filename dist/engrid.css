@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Tuesday, November 17, 2026 @ 15:24:11 ET
+ *  Date: Tuesday, November 17, 2026 @ 15:42:07 ET
  *  By: pedroluan
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.7
@@ -8374,21 +8374,15 @@ body[data-engrid-theme=clf] .en__field--giveBySelect label img{
   width:auto;
 }
 body[data-engrid-theme=clf] .en__field--giveBySelect.applepay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet{
-  --button_background-color:var(--color_black);
-  --button_color:var(--color_white);
-  --button_border-color:var(--color_black);
-  --button_background-color_hover:var(--color_black);
-  --button_color_hover:var(--color_white);
-  --button_border-color_hover:var(--color_black);
   --button_background-color_checked:var(--color_black);
   --button_color_checked:var(--color_white);
   --button_border-color_checked:var(--color_black);
 }
-body[data-engrid-theme=clf] .en__field--giveBySelect.applepay label .apple-pay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet label .apple-pay{
-  filter:invert(100%);
-}
 body[data-engrid-theme=clf] .en__field--giveBySelect.applepay label .google-pay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet label .google-pay{
-  filter:unset !important;
+  filter:invert(100%) hue-rotate(180deg);
+}
+body[data-engrid-theme=clf] .en__field--giveBySelect.applepay input:checked+label .google-pay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet input:checked+label .google-pay{
+  filter:none;
 }
 body[data-engrid-theme=clf] input[type=checkbox]+label{
   align-items:flex-start;
