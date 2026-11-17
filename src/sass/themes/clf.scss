@@ -147,6 +147,14 @@
     --fields_spacing-inline: 1px;
   }
 
+  // Keep the keyboard focus outline on the frequency and amount buttons. With
+  // the default offset it is drawn outside the button and the next button
+  // covers part of it.
+  .en__field--recurrfreq .en__field__element .en__field__item input:focus + label,
+  .en__field--donationAmt .en__field__element .en__field__item input:focus + label {
+    outline-offset: 0px;
+  }
+
   .monthly-upsell {
     background-color: #eac87d;
     color: black;
@@ -507,19 +515,6 @@
       h2 {
         margin: 16px 0px;
       }
-    }
-
-    .en__field--recurrfreq
-      .en__field__element
-      .en__field__item
-      input:focus
-      + label,
-    .en__field--donationAmt
-      .en__field__element
-      .en__field__item
-      input:focus
-      + label {
-      outline-offset: 0px;
     }
 
     .monthly-upsell {
