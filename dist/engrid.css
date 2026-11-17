@@ -19,7 +19,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Tuesday, November 17, 2026 @ 15:42:07 ET
+ *  Date: Tuesday, November 17, 2026 @ 15:52:00 ET
  *  By: pedroluan
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.7
@@ -8373,16 +8373,11 @@ body[data-engrid-theme=clf] .en__field--giveBySelect label img{
   max-height:28px;
   width:auto;
 }
-body[data-engrid-theme=clf] .en__field--giveBySelect.applepay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet{
-  --button_background-color_checked:var(--color_black);
-  --button_color_checked:var(--color_white);
-  --button_border-color_checked:var(--color_black);
-}
 body[data-engrid-theme=clf] .en__field--giveBySelect.applepay label .google-pay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet label .google-pay{
-  filter:invert(100%) hue-rotate(180deg);
+  filter:none;
 }
 body[data-engrid-theme=clf] .en__field--giveBySelect.applepay input:checked+label .google-pay,body[data-engrid-theme=clf] .en__field--giveBySelect.stripedigitalwallet input:checked+label .google-pay{
-  filter:none;
+  filter:brightness(0) invert(1);
 }
 body[data-engrid-theme=clf] input[type=checkbox]+label{
   align-items:flex-start;

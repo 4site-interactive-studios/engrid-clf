@@ -273,22 +273,18 @@
     }
   }
 
-  // Digital wallet tile (Apple Pay / Google Pay): white with dark logos when not
-  // selected, black with white logos when selected. The Apple Pay logo is black,
-  // so the checked rule above already inverts it. The Google Pay logo has white
-  // "Pay" text, so it is darkened on the white tile (hue-rotate keeps the colors
-  // of the G) and shown as is on black.
+  // Digital wallet tile (Apple Pay / Google Pay): same colors as the Card tile,
+  // white when not selected and CLF red when selected. The Apple Pay logo is
+  // black, so the checked rule above already inverts it to white. On one-column
+  // pages main.js loads a Google Pay logo with black "Pay" text, shown as is
+  // (colored G) on the white tile and turned all white on the red tile.
   .en__field--giveBySelect.stripedigitalwallet,
   .en__field--giveBySelect.applepay {
-    --button_background-color_checked: var(--color_black);
-    --button_color_checked: var(--color_white);
-    --button_border-color_checked: var(--color_black);
-
     label .google-pay {
-      filter: invert(100%) hue-rotate(180deg);
+      filter: none;
     }
     input:checked + label .google-pay {
-      filter: none;
+      filter: brightness(0) invert(1);
     }
   }
 
