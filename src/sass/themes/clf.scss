@@ -273,6 +273,28 @@
     }
   }
 
+  // Digital wallet tiles (Apple Pay / Google Pay) are always black, matching the
+  // multistep pages. The Card tile keeps the default Give By Select styling.
+  .en__field--giveBySelect.stripedigitalwallet,
+  .en__field--giveBySelect.applepay {
+    --button_background-color: var(--color_black);
+    --button_color: var(--color_white);
+    --button_border-color: var(--color_black);
+    --button_background-color_hover: var(--color_black);
+    --button_color_hover: var(--color_white);
+    --button_border-color_hover: var(--color_black);
+    --button_background-color_checked: var(--color_black);
+    --button_color_checked: var(--color_white);
+    --button_border-color_checked: var(--color_black);
+
+    label .apple-pay {
+      filter: invert(100%);
+    }
+    label .google-pay {
+      filter: unset !important;
+    }
+  }
+
   input[type="checkbox"] + label {
     align-items: flex-start;
     &::before {
