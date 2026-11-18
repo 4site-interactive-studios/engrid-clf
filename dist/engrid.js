@@ -17,7 +17,7 @@
  *
  *  ENGRID PAGE TEMPLATE ASSETS
  *
- *  Date: Wednesday, November 18, 2026 @ 11:06:17 ET
+ *  Date: Wednesday, November 18, 2026 @ 14:42:30 ET
  *  By: pedroluan
  *  ENGrid styles: v0.28.3
  *  ENGrid scripts: v0.28.7
@@ -29517,49 +29517,96 @@ class MultistepForm {
     }
   }
 }
-;// ./src/scripts/annual-donors-opt-in.ts
+;// ./src/scripts/annual-gift.ts
 
 
 
-// Hidden "Annual donors" opt-in question in Engaging Networks
-const ANNUAL_DONORS_FIELD = "supporter.questions.1167119";
+// Supporter fields filled in for annual gifts, as on the legacy donation page
+const ANNUAL_DONORS_FIELD = "supporter.questions.1167119"; // "Annual donors" opt-in
+const ANNUAL_GIFT_DATE_FIELD = "supporter.NOT_TAGGED_36"; // "Annual Gift Date"
+const ANNUAL_GIFT_AMOUNT_FIELD = "supporter.NOT_TAGGED_37"; // "Annual Gift Amount"
 
 /**
- * Answers the hidden "Annual donors" opt-in question with Y when the gift is
- * annual. For any other frequency the question isn't sent, so a Y saved from
- * an earlier annual gift isn't overwritten. The question has to be on the
- * form (hidden) for Engaging Networks to save it.
+ * For annual gifts, sends:
+ * - "Annual donors" opt-in: Y
+ * - "Annual Gift Date": today, as MM/DD
+ * - "Annual Gift Amount": the gift total, processing fee included, formatted
+ *   like the legacy page ("$51.50")
+ * For any other frequency none of them are sent, so values saved from an
+ * earlier annual gift aren't overwritten. Each field has to be on the form
+ * (hidden) for Engaging Networks to save it.
  */
-class AnnualDonorsOptIn {
+class AnnualGift {
   constructor() {
-    _defineProperty(this, "logger", new EngridLogger("AnnualDonorsOptIn", "white", "green", "📅"));
+    _defineProperty(this, "logger", new EngridLogger("AnnualGift", "white", "green", "📅"));
     _defineProperty(this, "frequency", DonationFrequency.getInstance());
     if (!document.getElementsByName("transaction.recurrfreq").length) return;
-    if (!this.getFields().length) {
-      this.logger.log(`${ANNUAL_DONORS_FIELD} isn't on this form`);
-      return;
+    const fields = [ANNUAL_DONORS_FIELD, ANNUAL_GIFT_DATE_FIELD, ANNUAL_GIFT_AMOUNT_FIELD];
+    const missing = fields.filter(name => !this.getFields(name).length);
+    if (missing.length) {
+      this.logger.log(`Not on this form: ${missing.join(", ")}`);
     }
+    if (missing.length === fields.length) return;
     this.update();
     this.frequency.onFrequencyChange.subscribe(() => this.update());
+    DonationAmount.getInstance().onAmountChange.subscribe(() => this.update());
+    document.addEventListener("change", e => {
+      const target = e.target;
+      if (target?.name === "transaction.feeCover") this.update();
+    });
     // Runs again right before the gift is sent, digital wallets included
     EnForm.getInstance().onIntentSubmit.subscribe(() => this.update());
   }
-  getFields() {
-    return Array.from(document.getElementsByName(ANNUAL_DONORS_FIELD));
+  getFields(name) {
+    return Array.from(document.getElementsByName(name));
   }
   update() {
+    // ENgrid stores the frequency in lowercase
     const isAnnual = this.frequency.frequency === "annual";
-    this.getFields().forEach(field => {
+    this.setOptIn(isAnnual);
+    this.setValue(ANNUAL_GIFT_DATE_FIELD, isAnnual ? this.getDate() : null);
+    this.setValue(ANNUAL_GIFT_AMOUNT_FIELD, isAnnual ? this.getAmount() : null);
+    this.logger.log(isAnnual ? `Annual gift: opt-in Y, date ${this.getDate()}, amount ${this.getAmount()}` : "Not an annual gift: annual fields won't be sent");
+  }
+  setOptIn(isAnnual) {
+    this.getFields(ANNUAL_DONORS_FIELD).forEach(field => {
       if (field instanceof HTMLInputElement && (field.type === "radio" || field.type === "checkbox")) {
         // Unchecked radios and checkboxes aren't sent
         field.checked = isAnnual && field.value.toUpperCase() === "Y";
-      } else if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
-        // Hidden, text or select field: disabled fields aren't sent
-        field.value = "Y";
-        field.disabled = !isAnnual;
+      } else {
+        this.setFieldValue(field, isAnnual ? "Y" : null);
       }
     });
-    this.logger.log(isAnnual ? "Annual gift: Annual donors opt-in set to Y" : "Not an annual gift: Annual donors opt-in won't be sent");
+  }
+  setValue(name, value) {
+    this.getFields(name).forEach(field => this.setFieldValue(field, value));
+  }
+
+  // A null value disables the field, and disabled fields aren't sent
+  setFieldValue(field, value) {
+    if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) {
+      if (value !== null) field.value = value;
+      field.disabled = value === null;
+    }
+  }
+
+  // Same format as the legacy page: MM/DD, no year
+  getDate() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${month}/${day}`;
+  }
+
+  // Same value and format as Engaging Networks' {amount-total} token
+  getAmount() {
+    const enjs = window.EngagingNetworks?.require?._defined?.enjs;
+    const total = typeof enjs?.getDonationTotal === "function" ? Number(enjs.getDonationTotal()) : DonationAmount.getInstance().amount + ProcessingFees.getInstance().fee;
+    const currency = enjs?.getSupporterData?.("paycurrency") || enjs?.getSupporterData?.("currency") || "USD";
+    return total.toLocaleString(window.pageJson?.locale || "en-US", {
+      style: "currency",
+      currency
+    });
   }
 }
 ;// ./src/index.ts
@@ -29598,7 +29645,7 @@ const options = {
     window.DonationLightboxForm = DonationLightboxForm;
     new DonationLightboxForm(DonationAmount, DonationFrequency, App);
     new MultistepForm();
-    new AnnualDonorsOptIn();
+    new AnnualGift();
     customScript(App, EnForm);
   },
   onResize: () => {}
